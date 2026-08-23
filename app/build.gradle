@@ -1,0 +1,31 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.iceinventory.onhand'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.iceinventory.onhand'
+        minSdk 24
+        targetSdk 36
+        versionCode 30001
+        versionName '3.0.1'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+}
