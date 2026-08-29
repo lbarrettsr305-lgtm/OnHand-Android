@@ -89,9 +89,7 @@ public class MainActivity extends Activity {
                         .commit();
             } catch (Throwable ignored) {
             }
-            if (prior != null) {
-                prior.uncaughtException(thread, error);
-            }
+            if (prior != null) prior.uncaughtException(thread, error);
         });
     }
 
@@ -111,26 +109,22 @@ public class MainActivity extends Activity {
     private void showFatalStartup(Throwable error) {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(20), dp(20), dp(20), dp(20));
+        root.setPadding(dp(16), dp(16), dp(16), dp(16));
 
         TextView heading = new TextView(this);
-        heading.setText("On Hand 3.0.3 diagnostic startup error");
-        heading.setTextSize(22);
+        heading.setText("On Hand 3.0.4 startup error");
+        heading.setTextSize(20);
         heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(heading);
 
         TextView detail = new TextView(this);
         detail.setText(Log.getStackTraceString(error));
         detail.setTextIsSelectable(true);
-        root.addView(detail, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        root.addView(detail, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
         Button reset = button("Reset local database and retry");
         reset.setOnClickListener(v -> {
-            try {
-                if (db != null) db.close();
-            } catch (Throwable ignored) {
-            }
+            try { if (db != null) db.close(); } catch (Throwable ignored) {}
             deleteDatabase(InventoryDb.DB_NAME);
             recreate();
         });
@@ -146,24 +140,29 @@ public class MainActivity extends Activity {
         Button b = new Button(this);
         b.setText(text);
         b.setAllCaps(false);
+        b.setMinHeight(dp(40));
+        b.setMinimumHeight(dp(40));
+        b.setPadding(dp(8), 0, dp(8), 0);
         return b;
     }
 
     private TextView label(String text) {
         TextView t = new TextView(this);
         t.setText(text);
-        t.setTextSize(14);
+        t.setTextSize(12);
+        t.setPadding(0, dp(2), 0, 0);
         return t;
     }
 
     private void buildUi() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(12), dp(10), dp(12), dp(10));
+        root.setPadding(dp(8), dp(6), dp(8), dp(6));
 
         title = new TextView(this);
-        title.setTextSize(24);
+        title.setTextSize(20);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setSingleLine(true);
         root.addView(title);
 
         LinearLayout sessionBar = new LinearLayout(this);
@@ -172,8 +171,8 @@ public class MainActivity extends Activity {
         choose.setOnClickListener(v -> chooseSession());
         Button fresh = button("New");
         fresh.setOnClickListener(v -> newSession());
-        sessionBar.addView(choose, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        sessionBar.addView(fresh, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        sessionBar.addView(choose, new LinearLayout.LayoutParams(0, dp(42), 2));
+        sessionBar.addView(fresh, new LinearLayout.LayoutParams(0, dp(42), 1));
         root.addView(sessionBar);
 
         root.addView(label("Barcode"));
@@ -181,8 +180,8 @@ public class MainActivity extends Activity {
         scanBar.setOrientation(LinearLayout.HORIZONTAL);
         barcode = new EditText(this);
         barcode.setSingleLine(true);
-        barcode.setTextSize(20);
-        barcode.setHint("Scan with hardware scanner or type barcode");
+        barcode.setTextSize(18);
+        barcode.setHint("Scan or type barcode");
         barcode.setInputType(InputType.TYPE_CLASS_TEXT);
         barcode.setOnEditorActionListener((v, action, event) -> {
             if (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
@@ -191,17 +190,18 @@ public class MainActivity extends Activity {
             }
             return false;
         });
-        Button scan = button("Camera Scan");
-        scan.setOnClickListener(v -> toast("Camera scanning is disabled in 3.0.3 diagnostic build"));
-        scanBar.addView(barcode, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        scanBar.addView(scan);
+        Button scan = button("Camera");
+        scan.setOnClickListener(v -> toast("Camera scanning stays disabled in 3.0.4 while layout is tested"));
+        scanBar.addView(barcode, new LinearLayout.LayoutParams(0, dp(46), 1));
+        scanBar.addView(scan, new LinearLayout.LayoutParams(dp(92), dp(46)));
         root.addView(scanBar);
 
         root.addView(label("Description"));
         description = new EditText(this);
         description.setSingleLine(true);
-        description.setHint("Optional item description");
-        root.addView(description);
+        description.setTextSize(16);
+        description.setHint("Optional description");
+        root.addView(description, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
 
         LinearLayout ql = new LinearLayout(this);
         ql.setOrientation(LinearLayout.HORIZONTAL);
@@ -212,16 +212,16 @@ public class MainActivity extends Activity {
         qty = new EditText(this);
         qty.setSingleLine(true);
         qty.setText("1");
-        qty.setTextSize(20);
+        qty.setTextSize(18);
         qty.setGravity(Gravity.CENTER);
         qty.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
-        qbox.addView(qty);
+        qbox.addView(qty, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42)));
 
         LinearLayout lbox = new LinearLayout(this);
         lbox.setOrientation(LinearLayout.VERTICAL);
         lbox.addView(label("Location"));
         location = new Spinner(this);
-        lbox.addView(location);
+        lbox.addView(location, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42)));
 
         ql.addView(qbox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         ql.addView(lbox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2));
@@ -233,12 +233,23 @@ public class MainActivity extends Activity {
         add.setOnClickListener(v -> addItem());
         Button loc = button("+ Location");
         loc.setOnClickListener(v -> addLocation());
-        actionBar.addView(add, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2));
-        actionBar.addView(loc, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        actionBar.addView(add, new LinearLayout.LayoutParams(0, dp(42), 2));
+        actionBar.addView(loc, new LinearLayout.LayoutParams(0, dp(42), 1));
         root.addView(actionBar);
 
+        LinearLayout io = new LinearLayout(this);
+        io.setOrientation(LinearLayout.HORIZONTAL);
+        Button imp = button("Import CSV");
+        imp.setOnClickListener(v -> importCsv());
+        Button exp = button("Export CSV");
+        exp.setOnClickListener(v -> exportCsv());
+        io.addView(imp, new LinearLayout.LayoutParams(0, dp(42), 1));
+        io.addView(exp, new LinearLayout.LayoutParams(0, dp(42), 1));
+        root.addView(io);
+
         summary = new TextView(this);
-        summary.setPadding(0, dp(8), 0, dp(4));
+        summary.setTextSize(13);
+        summary.setPadding(0, dp(4), 0, dp(2));
         summary.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(summary);
 
@@ -248,28 +259,17 @@ public class MainActivity extends Activity {
         list.setOnItemClickListener((p, v, pos, id) -> editRow(pos));
         root.addView(list, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
-        LinearLayout io = new LinearLayout(this);
-        io.setOrientation(LinearLayout.HORIZONTAL);
-        Button imp = button("Import CSV");
-        imp.setOnClickListener(v -> importCsv());
-        Button exp = button("Export CSV");
-        exp.setOnClickListener(v -> exportCsv());
-        io.addView(imp, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        io.addView(exp, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        root.addView(io);
-
         setContentView(root);
     }
 
     private void refreshLocations() {
         List<String> locs = db.locations();
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_dropdown_item, locs);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, locs);
         location.setAdapter(adapter);
     }
 
     private void refreshList() {
-        title.setText("On Hand 3.0.3 — " + sessionName);
+        title.setText("On Hand 3.0.4 — " + sessionName);
         visibleRows.clear();
         visibleRows.addAll(db.items(sessionId));
         ArrayList<String> lines = new ArrayList<>();
@@ -293,10 +293,7 @@ public class MainActivity extends Activity {
             return;
         }
         int q = 1;
-        try {
-            q = Integer.parseInt(qty.getText().toString().trim());
-        } catch (Exception ignored) {
-        }
+        try { q = Integer.parseInt(qty.getText().toString().trim()); } catch (Exception ignored) {}
         if (q == 0) {
             toast("Quantity cannot be zero");
             return;
@@ -335,9 +332,7 @@ public class MainActivity extends Activity {
                 .setView(e)
                 .setPositiveButton("Create", (d, w) -> {
                     String n = e.getText().toString().trim();
-                    if (n.isEmpty()) {
-                        n = "Inventory " + new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(new Date());
-                    }
+                    if (n.isEmpty()) n = "Inventory " + new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(new Date());
                     sessionId = db.createSession(n);
                     sessionName = n;
                     refreshList();
@@ -378,10 +373,7 @@ public class MainActivity extends Activity {
                 .setTitle("Edit count")
                 .setView(box)
                 .setPositiveButton("Save", (d, w) -> {
-                    try {
-                        db.setQuantity(r.id, Integer.parseInt(q.getText().toString()));
-                    } catch (Exception ignored) {
-                    }
+                    try { db.setQuantity(r.id, Integer.parseInt(q.getText().toString())); } catch (Exception ignored) {}
                     refreshList();
                 })
                 .setNeutralButton("Delete", (d, w) -> {
@@ -449,10 +441,7 @@ public class MainActivity extends Activity {
                 if (code.isEmpty()) continue;
                 String desc = f.size() > 1 ? f.get(1) : "";
                 int q = 1;
-                try {
-                    if (f.size() > 2) q = Integer.parseInt(f.get(2).trim());
-                } catch (Exception ignored) {
-                }
+                try { if (f.size() > 2) q = Integer.parseInt(f.get(2).trim()); } catch (Exception ignored) {}
                 String loc = f.size() > 3 && !f.get(3).trim().isEmpty() ? f.get(3).trim() : "Main";
                 db.addLocation(loc);
                 db.addOrIncrement(sessionId, code, desc, q, loc);
