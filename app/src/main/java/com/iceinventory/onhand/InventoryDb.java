@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class InventoryDb extends SQLiteOpenHelper {
-    public static final String DB_NAME = "onhand302.db";
+    public static final String DB_NAME = "onhand303.db";
     private static final int DB_VERSION = 1;
 
     public static final class Row {
@@ -29,20 +29,13 @@ public final class InventoryDb extends SQLiteOpenHelper {
 
     public InventoryDb(Context context) {
         super(context.getApplicationContext(), DB_NAME, null, DB_VERSION);
-        setWriteAheadLoggingEnabled(true);
     }
 
     @Override public void onCreate(SQLiteDatabase db) {
-        db.beginTransaction();
-        try {
-            db.execSQL("CREATE TABLE IF NOT EXISTS sessions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_at INTEGER NOT NULL)");
-            db.execSQL("CREATE TABLE IF NOT EXISTS locations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE COLLATE NOCASE)");
-            db.execSQL("CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, barcode TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', quantity INTEGER NOT NULL DEFAULT 0, location TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL, UNIQUE(session_id, barcode, location))");
-            ensureDefaults(db);
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-        }
+        db.execSQL("CREATE TABLE IF NOT EXISTS sessions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_at INTEGER NOT NULL)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS locations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE COLLATE NOCASE)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, barcode TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', quantity INTEGER NOT NULL DEFAULT 0, location TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL, UNIQUE(session_id, barcode, location))");
+        ensureDefaults(db);
     }
 
     @Override public void onOpen(SQLiteDatabase db) {
@@ -135,7 +128,7 @@ public final class InventoryDb extends SQLiteOpenHelper {
     }
 
     public void deleteItem(long id) {
-        getWritableDatabase().delete("items", "id=?", new String[]{String.valueOf(id)});
+        getWritableDatabase().delete("items", null == null ? "id=?" : "id=?", new String[]{String.valueOf(id)});
     }
 
     public List<Row> items(long sessionId) {
