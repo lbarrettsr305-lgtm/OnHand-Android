@@ -3,9 +3,11 @@ package com.iceinventory.onhand;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -35,6 +37,7 @@ import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
 public class MainActivity extends Activity {
+    private static final String TAG="OnHand";
     private static final int REQ_EXPORT=1002, REQ_IMPORT=1003;
     private InventoryDb db;
     private long sessionId;
@@ -48,12 +51,81 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        installCrashRecorder();
+        try {
+            initializeApp(false);
+            showPreviousCrashIfAny();
+        } catch (Throwable first) {
+            Log.e(TAG, "Startup failed; attempting database recovery", first);
+            try {
+                if (db != null) db.close();
+                deleteDatabase(InventoryDb.DB_NAME);
+                initializeApp(true);
+                new AlertDialog.Builder(this)
+                        .setTitle("On Hand repaired its local data")
+                        .setMessage("The previous local test database could not be opened, so On Hand created a fresh database. The app should now remain stable.")
+                        .setPositiveButton("OK", null).show();
+            } catch (Throwable second) {
+                Log.e(TAG, "Startup recovery failed", second);
+                showFatalStartup(first, second);
+            }
+        }
+    }
+
+    private void initializeApp(boolean recovered) {
         db = new InventoryDb(this);
-        List<InventoryDb.Session> sessions=db.sessions();
-        if (!sessions.isEmpty()) { sessionId=sessions.get(0).id; sessionName=sessions.get(0).name; }
+        db.verifyReady();
+        List<InventoryDb.Session> sessions = db.sessions();
+        if (sessions.isEmpty()) {
+            sessionId = db.createSession("Default Inventory");
+            sessionName = "Default Inventory";
+        } else {
+            sessionId = sessions.get(0).id;
+            sessionName = sessions.get(0).name;
+        }
         buildUi();
         refreshLocations();
         refreshList();
+    }
+
+    private void installCrashRecorder() {
+        final Thread.UncaughtExceptionHandler prior = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
+            try {
+                getSharedPreferences("onhand_diag", MODE_PRIVATE).edit()
+                        .putString("last_crash", Log.getStackTraceString(error)).apply();
+            } catch (Throwable ignored) {}
+            if (prior != null) prior.uncaughtException(thread, error);
+        });
+    }
+
+    private void showPreviousCrashIfAny() {
+        SharedPreferences p = getSharedPreferences("onhand_diag", MODE_PRIVATE);
+        String crash = p.getString("last_crash", null);
+        if (crash == null || crash.trim().isEmpty()) return;
+        p.edit().remove("last_crash").apply();
+        String shortCrash = crash.length() > 3500 ? crash.substring(0, 3500) : crash;
+        new AlertDialog.Builder(this).setTitle("Previous crash details")
+                .setMessage(shortCrash).setPositiveButton("OK", null).show();
+    }
+
+    private void showFatalStartup(Throwable first, Throwable second) {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(20), dp(20), dp(20), dp(20));
+        TextView heading = new TextView(this);
+        heading.setText("On Hand 3.0.2 could not start");
+        heading.setTextSize(22);
+        heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        root.addView(heading);
+        TextView detail = new TextView(this);
+        detail.setText("Startup error:\n" + first + "\n\nRecovery error:\n" + second);
+        detail.setTextIsSelectable(true);
+        root.addView(detail, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        Button reset = button("Reset local database and retry");
+        reset.setOnClickListener(v -> { deleteDatabase(InventoryDb.DB_NAME); recreate(); });
+        root.addView(reset);
+        setContentView(root);
     }
 
     private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
@@ -103,7 +175,7 @@ public class MainActivity extends Activity {
     }
 
     private void refreshList() {
-        title.setText("On Hand 3 — "+sessionName);
+        title.setText("On Hand 3.0.2 — "+sessionName);
         visibleRows.clear(); visibleRows.addAll(db.items(sessionId));
         ArrayList<String> lines=new ArrayList<>(); int units=0;
         for (InventoryDb.Row r:visibleRows){ units+=r.quantity; String d=r.description==null||r.description.isEmpty()?"":(" — "+r.description); lines.add(r.barcode+"   Qty "+r.quantity+d+"\n"+r.location); }
@@ -119,12 +191,16 @@ public class MainActivity extends Activity {
     }
 
     private void scanBarcode() {
-        IntentIntegrator integrator = new IntentIntegrator(this);
-        integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES);
-        integrator.setPrompt("Scan item barcode");
-        integrator.setBeepEnabled(true);
-        integrator.setOrientationLocked(false);
-        integrator.initiateScan();
+        try {
+            IntentIntegrator integrator = new IntentIntegrator(this);
+            integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES);
+            integrator.setPrompt("Scan item barcode");
+            integrator.setBeepEnabled(true);
+            integrator.setOrientationLocked(false);
+            integrator.initiateScan();
+        } catch (Throwable e) {
+            showError("Scanner could not start", e instanceof Exception ? (Exception)e : new Exception(e));
+        }
     }
 
     private void addLocation() {
