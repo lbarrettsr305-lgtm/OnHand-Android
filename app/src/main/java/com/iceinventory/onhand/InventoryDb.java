@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class InventoryDb extends SQLiteOpenHelper {
+    public static final String DB_NAME = "onhand302.db";
+    private static final int DB_VERSION = 1;
+
     public static final class Row {
         public long id;
         public long sessionId;
@@ -25,21 +28,52 @@ public final class InventoryDb extends SQLiteOpenHelper {
     }
 
     public InventoryDb(Context context) {
-        super(context, "onhand3.db", null, 1);
+        super(context.getApplicationContext(), DB_NAME, null, DB_VERSION);
+        setWriteAheadLoggingEnabled(true);
     }
 
     @Override public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE sessions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_at INTEGER NOT NULL)");
-        db.execSQL("CREATE TABLE locations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE COLLATE NOCASE)");
-        db.execSQL("CREATE TABLE items (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, barcode TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', quantity INTEGER NOT NULL DEFAULT 0, location TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL, UNIQUE(session_id, barcode, location))");
-        ContentValues cv = new ContentValues();
-        cv.put("name", "Default Inventory");
-        cv.put("created_at", System.currentTimeMillis());
-        db.insert("sessions", null, cv);
-        cv.clear(); cv.put("name", "Main"); db.insert("locations", null, cv);
+        db.beginTransaction();
+        try {
+            db.execSQL("CREATE TABLE IF NOT EXISTS sessions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_at INTEGER NOT NULL)");
+            db.execSQL("CREATE TABLE IF NOT EXISTS locations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE COLLATE NOCASE)");
+            db.execSQL("CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, barcode TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', quantity INTEGER NOT NULL DEFAULT 0, location TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL, UNIQUE(session_id, barcode, location))");
+            ensureDefaults(db);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
     }
 
-    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) { }
+    @Override public void onOpen(SQLiteDatabase db) {
+        super.onOpen(db);
+        if (!db.isReadOnly()) ensureDefaults(db);
+    }
+
+    private void ensureDefaults(SQLiteDatabase db) {
+        try (Cursor c = db.rawQuery("SELECT COUNT(*) FROM sessions", null)) {
+            if (c.moveToFirst() && c.getLong(0) == 0) {
+                ContentValues cv = new ContentValues();
+                cv.put("name", "Default Inventory");
+                cv.put("created_at", System.currentTimeMillis());
+                db.insertOrThrow("sessions", null, cv);
+            }
+        }
+        ContentValues loc = new ContentValues();
+        loc.put("name", "Main");
+        db.insertWithOnConflict("locations", null, loc, SQLiteDatabase.CONFLICT_IGNORE);
+    }
+
+    @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    }
+
+    public void verifyReady() {
+        SQLiteDatabase db = getWritableDatabase();
+        try (Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'", null)) {
+            if (!c.moveToFirst()) throw new IllegalStateException("Inventory database did not initialize");
+        }
+        ensureDefaults(db);
+    }
 
     public long createSession(String name) {
         ContentValues cv = new ContentValues();
@@ -59,6 +93,7 @@ public final class InventoryDb extends SQLiteOpenHelper {
     }
 
     public void addLocation(String name) {
+        if (name == null || name.trim().isEmpty()) return;
         ContentValues cv = new ContentValues(); cv.put("name", name.trim());
         getWritableDatabase().insertWithOnConflict("locations", null, cv, SQLiteDatabase.CONFLICT_IGNORE);
     }
@@ -73,9 +108,12 @@ public final class InventoryDb extends SQLiteOpenHelper {
     }
 
     public void addOrIncrement(long sessionId, String barcode, String description, int quantity, String location) {
+        if (sessionId <= 0) throw new IllegalStateException("No active inventory session");
         SQLiteDatabase db = getWritableDatabase();
-        String[] args = { String.valueOf(sessionId), barcode, location };
-        try (Cursor c = db.rawQuery("SELECT id,quantity,description FROM items WHERE session_id=? AND barcode=? AND location=?", args)) {
+        String safeBarcode = barcode == null ? "" : barcode.trim();
+        String safeLocation = location == null || location.trim().isEmpty() ? "Main" : location.trim();
+        String[] args = { String.valueOf(sessionId), safeBarcode, safeLocation };
+        try (Cursor c = db.rawQuery("SELECT id,quantity FROM items WHERE session_id=? AND barcode=? AND location=?", args)) {
             if (c.moveToFirst()) {
                 ContentValues cv = new ContentValues();
                 cv.put("quantity", c.getInt(1) + quantity);
@@ -86,8 +124,8 @@ public final class InventoryDb extends SQLiteOpenHelper {
             }
         }
         ContentValues cv = new ContentValues();
-        cv.put("session_id", sessionId); cv.put("barcode", barcode); cv.put("description", description == null ? "" : description.trim());
-        cv.put("quantity", quantity); cv.put("location", location); cv.put("updated_at", System.currentTimeMillis());
+        cv.put("session_id", sessionId); cv.put("barcode", safeBarcode); cv.put("description", description == null ? "" : description.trim());
+        cv.put("quantity", quantity); cv.put("location", safeLocation); cv.put("updated_at", System.currentTimeMillis());
         db.insertOrThrow("items", null, cv);
     }
 
@@ -102,6 +140,7 @@ public final class InventoryDb extends SQLiteOpenHelper {
 
     public List<Row> items(long sessionId) {
         ArrayList<Row> out = new ArrayList<>();
+        if (sessionId <= 0) return out;
         try (Cursor c = getReadableDatabase().rawQuery("SELECT id,session_id,barcode,description,quantity,location FROM items WHERE session_id=? ORDER BY updated_at DESC", new String[]{String.valueOf(sessionId)})) {
             while (c.moveToNext()) {
                 Row r = new Row(); r.id=c.getLong(0); r.sessionId=c.getLong(1); r.barcode=c.getString(2); r.description=c.getString(3); r.quantity=c.getInt(4); r.location=c.getString(5); out.add(r);
