@@ -41,6 +41,10 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
+          obsolete = Path('app/src/main/java/com/iceinventory/onhand/ScanActivity.java')
+          if obsolete.exists():
+              obsolete.unlink()
+
           dbp = Path('app/src/main/java/com/iceinventory/onhand/InventoryDb.java')
           d = dbp.read_text()
           insert_before = '    public void setQuantity(long id, int quantity) {'
