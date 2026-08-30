@@ -145,13 +145,13 @@ public class MainActivity extends Activity {
         root.addView(label("Barcode"));
         LinearLayout scanBar=new LinearLayout(this); scanBar.setOrientation(LinearLayout.HORIZONTAL);
         barcode=new EditText(this); barcode.setSingleLine(true); barcode.setTextSize(20); barcode.setHint("Scan or type barcode"); barcode.setInputType(InputType.TYPE_CLASS_TEXT);
-        barcode.setOnEditorActionListener((v,action,event)->{ if(event!=null && event.getKeyCode()==KeyEvent.KEYCODE_ENTER){ addItem(); return true;} return false; });
+        barcode.setOnEditorActionListener((v,action,event)->{ if(event!=null && event.getKeyCode()==KeyEvent.KEYCODE_ENTER){ qty.requestFocus(); return true;} return false; });
         Button scan=button("Scan"); scan.setOnClickListener(v->scanBarcode());
         scanBar.addView(barcode,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); scanBar.addView(scan); root.addView(scanBar);
 
         root.addView(label("Description")); description=new EditText(this); description.setSingleLine(true); description.setHint("Optional item description"); root.addView(description);
         LinearLayout ql=new LinearLayout(this); ql.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout qbox=new LinearLayout(this); qbox.setOrientation(LinearLayout.VERTICAL); qbox.addView(label("Quantity")); qty=new EditText(this); qty.setSingleLine(true); qty.setText("1"); qty.setTextSize(20); qty.setGravity(Gravity.CENTER); qty.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED); qbox.addView(qty);
+        LinearLayout qbox=new LinearLayout(this); qbox.setOrientation(LinearLayout.VERTICAL); qbox.addView(label("Quantity")); qty=new EditText(this); qty.setSingleLine(true); qty.setText(""); qty.setTextSize(20); qty.setGravity(Gravity.CENTER); qty.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED); qbox.addView(qty);
         LinearLayout lbox=new LinearLayout(this); lbox.setOrientation(LinearLayout.VERTICAL); lbox.addView(label("Location")); location=new Spinner(this); lbox.addView(location);
         ql.addView(qbox,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); ql.addView(lbox,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,2)); root.addView(ql);
 
@@ -182,7 +182,19 @@ public class MainActivity extends Activity {
         listAdapter.clear(); listAdapter.addAll(lines); listAdapter.notifyDataSetChanged(); summary.setText(visibleRows.size()+" item lines • "+units+" total units");
     }
 
-    private void addItem() { String code=barcode.getText().toString().trim(); if(code.isEmpty()){ toast("Enter or scan a barcode"); barcode.requestFocus(); return; } int q=1; try { q=Integer.parseInt(qty.getText().toString().trim()); } catch(Exception ignored){} if(q==0){toast("Quantity cannot be zero");return;} String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString(); db.addOrIncrement(sessionId,code,description.getText().toString(),q,loc); barcode.setText(""); description.setText(""); qty.setText("1"); barcode.requestFocus(); refreshList(); }
+    private void addItem() {
+        String code=barcode.getText().toString().trim();
+        if(code.isEmpty()){ toast("Enter or scan a barcode"); barcode.requestFocus(); return; }
+        String qtyText=qty.getText().toString().trim();
+        if(qtyText.isEmpty()){ toast("Enter quantity"); qty.requestFocus(); return; }
+        int q;
+        try { q=Integer.parseInt(qtyText); }
+        catch(Exception ignored){ toast("Enter a valid quantity"); qty.requestFocus(); return; }
+        if(q==0){toast("Quantity cannot be zero");qty.requestFocus();return;}
+        String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString();
+        db.addOrIncrement(sessionId,code,description.getText().toString(),q,loc);
+        barcode.setText(""); description.setText(""); qty.setText(""); barcode.requestFocus(); refreshList();
+    }
 
     private void scanBarcode() { try { IntentIntegrator integrator = new IntentIntegrator(this); integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES); integrator.setPrompt("Scan item barcode"); integrator.setBeepEnabled(true); integrator.setOrientationLocked(false); integrator.initiateScan(); } catch (Throwable e) { showError("Scanner could not start", e instanceof Exception ? (Exception)e : new Exception(e)); } }
 
@@ -198,7 +210,22 @@ public class MainActivity extends Activity {
     private void importCsv() { Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/*");startActivityForResult(i,REQ_IMPORT); }
     private String safeFileName(String s){return s.replaceAll("[^A-Za-z0-9._-]+","_");}
 
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){ super.onActivityResult(requestCode,resultCode,data); if(resultCode!=RESULT_OK||data==null)return; IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data); if (scanResult != null) { String c = scanResult.getContents(); if (c != null) { barcode.setText(c); barcode.setSelection(c.length()); addItem(); } return; } if(requestCode==REQ_EXPORT){writeExport(data.getData());} else if(requestCode==REQ_IMPORT){readImport(data.getData());} }
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);
+        if(resultCode!=RESULT_OK||data==null)return;
+        IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (scanResult != null) {
+            String c = scanResult.getContents();
+            if (c != null) {
+                barcode.setText(c);
+                barcode.setSelection(c.length());
+                qty.setText("");
+                qty.post(() -> qty.requestFocus());
+            }
+            return;
+        }
+        if(requestCode==REQ_EXPORT){writeExport(data.getData());} else if(requestCode==REQ_IMPORT){readImport(data.getData());}
+    }
 
     private void writeExport(Uri uri){ if(uri==null)return; try(OutputStream os=getContentResolver().openOutputStream(uri)){ if(os==null)throw new Exception("No output stream"); os.write(CsvUtils.exportRows(db.items(sessionId)).getBytes(StandardCharsets.UTF_8));toast("CSV exported"); }catch(Exception e){showError("Export failed",e);} }
 
