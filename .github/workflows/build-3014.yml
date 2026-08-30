@@ -1,0 +1,81 @@
+name: Build OnHand 3.0.14
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK 36
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Enable AndroidX
+        run: echo "android.useAndroidX=true" > gradle.properties
+      - name: Apply 3.0.14 fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
+          s = p.read_text()
+
+          old_root = 'LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(12),dp(10),dp(12),0);'
+          new_root = '''final int sidePadding=dp(12), topPadding=dp(10);\n        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(sidePadding,topPadding,sidePadding,dp(8));\n        root.setOnApplyWindowInsetsListener((v,insets)->{\n            int bottomInset=insets.getSystemWindowInsetBottom();\n            v.setPadding(sidePadding,topPadding,sidePadding,bottomInset+dp(8));\n            return insets;\n        });\n        root.requestApplyInsets();'''
+          if old_root in s:
+              s = s.replace(old_root, new_root, 1)
+          s = s.replace('        io.setTranslationY(dp(-32));\n', '', 1)
+
+          s = s.replace('import com.google.zxing.integration.android.IntentIntegrator;\nimport com.google.zxing.integration.android.IntentResult;\n',
+                        'import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;\nimport com.google.mlkit.vision.codescanner.GmsBarcodeScanning;\nimport com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;\nimport com.google.mlkit.vision.barcode.common.Barcode;\n')
+
+          marker = '    private final ArrayList<InventoryDb.Row> visibleRows = new ArrayList<>();\n'
+          if marker in s and 'private boolean continuousScan' not in s:
+              s = s.replace(marker, marker + '    private boolean continuousScan = false;\n', 1)
+
+          old_scan = '''    private void scanBarcode() { try { IntentIntegrator integrator = new IntentIntegrator(this); integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES); integrator.setPrompt("Scan item barcode"); integrator.setBeepEnabled(true); integrator.setOrientationLocked(false); integrator.initiateScan(); } catch (Throwable e) { showError("Scanner could not start", e instanceof Exception ? (Exception)e : new Exception(e)); } }'''
+          new_scan = '''    private void scanBarcode() {\n        continuousScan = true;\n        scanNextBarcode();\n    }\n\n    private void scanNextBarcode() {\n        if (!continuousScan || isFinishing()) return;\n        try {\n            GmsBarcodeScannerOptions options = new GmsBarcodeScannerOptions.Builder()\n                    .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)\n                    .build();\n            GmsBarcodeScanner scanner = GmsBarcodeScanning.getClient(this, options);\n            scanner.startScan()\n                    .addOnSuccessListener(result -> {\n                        String c = result.getRawValue();\n                        if (c != null && !c.trim().isEmpty()) {\n                            barcode.setText(c);\n                            barcode.setSelection(c.length());\n                            addItem();\n                            barcode.postDelayed(this::scanNextBarcode, 200);\n                        } else {\n                            continuousScan = false;\n                        }\n                    })\n                    .addOnCanceledListener(() -> continuousScan = false)\n                    .addOnFailureListener(e -> {\n                        continuousScan = false;\n                        showError("Scanner could not start", e);\n                    });\n        } catch (Throwable e) {\n            continuousScan = false;\n            showError("Scanner could not start", e instanceof Exception ? (Exception)e : new Exception(e));\n        }\n    }'''
+          if old_scan not in s:
+              raise SystemExit('scanner method marker not found')
+          s = s.replace(old_scan, new_scan, 1)
+
+          old_result = ''' IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data); if (scanResult != null) { String c = scanResult.getContents(); if (c != null) { barcode.setText(c); barcode.setSelection(c.length()); addItem(); } return; }'''
+          if old_result in s:
+              s = s.replace(old_result, '', 1)
+
+          p.write_text(s)
+
+          g = Path('app/build.gradle')
+          t = g.read_text()
+          t = t.replace('versionCode 30010', 'versionCode 30014').replace("versionName '3.0.10'", "versionName '3.0.14'")
+          if "play-services-code-scanner" not in t:
+              t = t.replace("dependencies {\n", "dependencies {\n    implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'\n", 1)
+          g.write_text(t)
+          PY
+      - name: Build release APK
+        run: gradle :app:assembleRelease --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OnHand-3.0.14-release-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Android-signing-tools-35
+          path: |
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/apksigner
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/lib/apksigner.jar
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/zipalign
+          if-no-files-found: error
