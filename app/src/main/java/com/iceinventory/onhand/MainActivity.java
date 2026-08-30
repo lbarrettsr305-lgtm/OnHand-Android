@@ -114,7 +114,7 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(20), dp(20), dp(20), dp(20));
         TextView heading = new TextView(this);
-        heading.setText("On Hand 3.0.2 could not start");
+        heading.setText("On Hand could not start");
         heading.setTextSize(22);
         heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(heading);
@@ -133,7 +133,7 @@ public class MainActivity extends Activity {
     private TextView label(String text) { TextView t=new TextView(this); t.setText(text); t.setTextSize(14); return t; }
 
     private void buildUi() {
-        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(12),dp(10),dp(12),dp(10));
+        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(12),dp(10),dp(12),0);
         title=new TextView(this); title.setTextSize(24); title.setTypeface(Typeface.DEFAULT, Typeface.BOLD); root.addView(title);
 
         LinearLayout sessionBar=new LinearLayout(this); sessionBar.setOrientation(LinearLayout.HORIZONTAL);
@@ -166,87 +166,39 @@ public class MainActivity extends Activity {
         LinearLayout io=new LinearLayout(this); io.setOrientation(LinearLayout.HORIZONTAL);
         Button imp=button("Import CSV"); imp.setOnClickListener(v->importCsv());
         Button exp=button("Export CSV"); exp.setOnClickListener(v->exportCsv());
-        io.addView(imp,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); io.addView(exp,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); root.addView(io);
+        io.addView(imp,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); io.addView(exp,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
+        io.setTranslationY(dp(8));
+        root.addView(io);
         setContentView(root);
     }
 
-    private void refreshLocations() {
-        List<String> locs=db.locations(); ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,locs); location.setAdapter(a);
-    }
+    private void refreshLocations() { List<String> locs=db.locations(); ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,locs); location.setAdapter(a); }
 
     private void refreshList() {
-        title.setText("On Hand 3.0.2 — "+sessionName);
+        title.setText("On Hand — "+sessionName);
         visibleRows.clear(); visibleRows.addAll(db.items(sessionId));
         ArrayList<String> lines=new ArrayList<>(); int units=0;
         for (InventoryDb.Row r:visibleRows){ units+=r.quantity; String d=r.description==null||r.description.isEmpty()?"":(" — "+r.description); lines.add(r.barcode+"   Qty "+r.quantity+d+"\n"+r.location); }
         listAdapter.clear(); listAdapter.addAll(lines); listAdapter.notifyDataSetChanged(); summary.setText(visibleRows.size()+" item lines • "+units+" total units");
     }
 
-    private void addItem() {
-        String code=barcode.getText().toString().trim(); if(code.isEmpty()){ toast("Enter or scan a barcode"); barcode.requestFocus(); return; }
-        int q=1; try { q=Integer.parseInt(qty.getText().toString().trim()); } catch(Exception ignored){} if(q==0){toast("Quantity cannot be zero");return;}
-        String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString();
-        db.addOrIncrement(sessionId,code,description.getText().toString(),q,loc);
-        barcode.setText(""); description.setText(""); qty.setText("1"); barcode.requestFocus(); refreshList();
-    }
+    private void addItem() { String code=barcode.getText().toString().trim(); if(code.isEmpty()){ toast("Enter or scan a barcode"); barcode.requestFocus(); return; } int q=1; try { q=Integer.parseInt(qty.getText().toString().trim()); } catch(Exception ignored){} if(q==0){toast("Quantity cannot be zero");return;} String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString(); db.addOrIncrement(sessionId,code,description.getText().toString(),q,loc); barcode.setText(""); description.setText(""); qty.setText("1"); barcode.requestFocus(); refreshList(); }
 
-    private void scanBarcode() {
-        try {
-            IntentIntegrator integrator = new IntentIntegrator(this);
-            integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES);
-            integrator.setPrompt("Scan item barcode");
-            integrator.setBeepEnabled(true);
-            integrator.setOrientationLocked(false);
-            integrator.initiateScan();
-        } catch (Throwable e) {
-            showError("Scanner could not start", e instanceof Exception ? (Exception)e : new Exception(e));
-        }
-    }
+    private void scanBarcode() { try { IntentIntegrator integrator = new IntentIntegrator(this); integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES); integrator.setPrompt("Scan item barcode"); integrator.setBeepEnabled(true); integrator.setOrientationLocked(false); integrator.initiateScan(); } catch (Throwable e) { showError("Scanner could not start", e instanceof Exception ? (Exception)e : new Exception(e)); } }
 
-    private void addLocation() {
-        EditText e=new EditText(this); e.setHint("Location name");
-        new AlertDialog.Builder(this).setTitle("Add location").setView(e).setPositiveButton("Add",(d,w)->{String s=e.getText().toString().trim();if(!s.isEmpty()){db.addLocation(s);refreshLocations();}}).setNegativeButton("Cancel",null).show();
-    }
+    private void addLocation() { EditText e=new EditText(this); e.setHint("Location name"); new AlertDialog.Builder(this).setTitle("Add location").setView(e).setPositiveButton("Add",(d,w)->{String s=e.getText().toString().trim();if(!s.isEmpty()){db.addLocation(s);refreshLocations();}}).setNegativeButton("Cancel",null).show(); }
 
-    private void newSession() {
-        EditText e=new EditText(this); e.setHint("Inventory name");
-        new AlertDialog.Builder(this).setTitle("New inventory").setView(e).setPositiveButton("Create",(d,w)->{String n=e.getText().toString().trim();if(n.isEmpty())n="Inventory "+new SimpleDateFormat("yyyy-MM-dd HH:mm",Locale.US).format(new Date());sessionId=db.createSession(n);sessionName=n;refreshList();}).setNegativeButton("Cancel",null).show();
-    }
+    private void newSession() { EditText e=new EditText(this); e.setHint("Inventory name"); new AlertDialog.Builder(this).setTitle("New inventory").setView(e).setPositiveButton("Create",(d,w)->{String n=e.getText().toString().trim();if(n.isEmpty())n="Inventory "+new SimpleDateFormat("yyyy-MM-dd HH:mm",Locale.US).format(new Date());sessionId=db.createSession(n);sessionName=n;refreshList();}).setNegativeButton("Cancel",null).show(); }
 
-    private void chooseSession() {
-        List<InventoryDb.Session> s=db.sessions(); String[] names=new String[s.size()]; for(int i=0;i<s.size();i++)names[i]=s.get(i).name;
-        new AlertDialog.Builder(this).setTitle("Inventories").setItems(names,(d,which)->{sessionId=s.get(which).id;sessionName=s.get(which).name;refreshList();}).setNegativeButton("Cancel",null).show();
-    }
+    private void chooseSession() { List<InventoryDb.Session> s=db.sessions(); String[] names=new String[s.size()]; for(int i=0;i<s.size();i++)names[i]=s.get(i).name; new AlertDialog.Builder(this).setTitle("Inventories").setItems(names,(d,which)->{sessionId=s.get(which).id;sessionName=s.get(which).name;refreshList();}).setNegativeButton("Cancel",null).show(); }
 
-    private void editRow(int pos) {
-        if(pos<0||pos>=visibleRows.size())return; InventoryDb.Row r=visibleRows.get(pos);
-        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(24),0,dp(24),0);
-        TextView info=new TextView(this); info.setText(r.barcode+"\n"+r.description+"\n"+r.location); box.addView(info);
-        EditText q=new EditText(this);q.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED);q.setText(String.valueOf(r.quantity));box.addView(q);
-        new AlertDialog.Builder(this).setTitle("Edit count").setView(box).setPositiveButton("Save",(d,w)->{try{db.setQuantity(r.id,Integer.parseInt(q.getText().toString()));}catch(Exception ignored){}refreshList();}).setNeutralButton("Delete",(d,w)->{db.deleteItem(r.id);refreshList();}).setNegativeButton("Cancel",null).show();
-    }
+    private void editRow(int pos) { if(pos<0||pos>=visibleRows.size())return; InventoryDb.Row r=visibleRows.get(pos); LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(24),0,dp(24),0); TextView info=new TextView(this); info.setText(r.barcode+"\n"+r.description+"\n"+r.location); box.addView(info); EditText q=new EditText(this);q.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED);q.setText(String.valueOf(r.quantity));box.addView(q); new AlertDialog.Builder(this).setTitle("Edit count").setView(box).setPositiveButton("Save",(d,w)->{try{db.setQuantity(r.id,Integer.parseInt(q.getText().toString()));}catch(Exception ignored){}refreshList();}).setNeutralButton("Delete",(d,w)->{db.deleteItem(r.id);refreshList();}).setNegativeButton("Cancel",null).show(); }
 
-    private void exportCsv() {
-        Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/csv");i.putExtra(Intent.EXTRA_TITLE,safeFileName(sessionName)+".csv");startActivityForResult(i,REQ_EXPORT);
-    }
-
-    private void importCsv() {
-        Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/*");startActivityForResult(i,REQ_IMPORT);
-    }
-
+    private void exportCsv() { Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/csv");i.putExtra(Intent.EXTRA_TITLE,safeFileName(sessionName)+".csv");startActivityForResult(i,REQ_EXPORT); }
+    private void importCsv() { Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/*");startActivityForResult(i,REQ_IMPORT); }
     private String safeFileName(String s){return s.replaceAll("[^A-Za-z0-9._-]+","_");}
 
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
-        super.onActivityResult(requestCode,resultCode,data); if(resultCode!=RESULT_OK||data==null)return;
-        IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-        if (scanResult != null) {
-            String c = scanResult.getContents();
-            if (c != null) { barcode.setText(c); barcode.setSelection(c.length()); addItem(); }
-            return;
-        }
-        if(requestCode==REQ_EXPORT){writeExport(data.getData());}
-        else if(requestCode==REQ_IMPORT){readImport(data.getData());}
-    }
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){ super.onActivityResult(requestCode,resultCode,data); if(resultCode!=RESULT_OK||data==null)return; IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data); if (scanResult != null) { String c = scanResult.getContents(); if (c != null) { barcode.setText(c); barcode.setSelection(c.length()); addItem(); } return; } if(requestCode==REQ_EXPORT){writeExport(data.getData());} else if(requestCode==REQ_IMPORT){readImport(data.getData());} }
 
     private void writeExport(Uri uri){ if(uri==null)return; try(OutputStream os=getContentResolver().openOutputStream(uri)){ if(os==null)throw new Exception("No output stream"); os.write(CsvUtils.exportRows(db.items(sessionId)).getBytes(StandardCharsets.UTF_8));toast("CSV exported"); }catch(Exception e){showError("Export failed",e);} }
 
