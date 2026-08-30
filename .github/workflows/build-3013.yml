@@ -22,6 +22,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+      - name: Enable AndroidX
+        run: echo "android.useAndroidX=true" > gradle.properties
       - name: Apply 3.0.13 fixes
         run: |
           python3 - <<'PY'
@@ -30,14 +32,12 @@ jobs:
           p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
           s = p.read_text()
 
-          # Keep the 3.0.11 bottom safe-area layout fix.
           old_root = 'LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(12),dp(10),dp(12),0);'
           new_root = '''final int sidePadding=dp(12), topPadding=dp(10);\n        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(sidePadding,topPadding,sidePadding,dp(8));\n        root.setOnApplyWindowInsetsListener((v,insets)->{\n            int bottomInset=insets.getSystemWindowInsetBottom();\n            v.setPadding(sidePadding,topPadding,sidePadding,bottomInset+dp(8));\n            return insets;\n        });\n        root.requestApplyInsets();'''
           if old_root in s:
               s = s.replace(old_root, new_root, 1)
           s = s.replace('        io.setTranslationY(dp(-32));\n', '', 1)
 
-          # Replace ZXing imports with Google Code Scanner imports.
           s = s.replace('import com.google.zxing.integration.android.IntentIntegrator;\nimport com.google.zxing.integration.android.IntentResult;\n',
                         'import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;\nimport com.google.mlkit.vision.codescanner.GmsBarcodeScanning;\nimport com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;\nimport com.google.mlkit.vision.barcode.common.Barcode;\n')
 
@@ -47,7 +47,6 @@ jobs:
               raise SystemExit('scanner method marker not found')
           s = s.replace(old_scan, new_scan, 1)
 
-          # Remove ZXing result parsing from onActivityResult; CSV import/export still use it.
           old_result = ''' IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data); if (scanResult != null) { String c = scanResult.getContents(); if (c != null) { barcode.setText(c); barcode.setSelection(c.length()); addItem(); } return; }'''
           if old_result in s:
               s = s.replace(old_result, '', 1)
