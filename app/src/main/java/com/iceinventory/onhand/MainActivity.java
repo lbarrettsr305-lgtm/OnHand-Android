@@ -167,7 +167,7 @@ public class MainActivity extends Activity {
         Button imp=button("Import CSV"); imp.setOnClickListener(v->importCsv());
         Button exp=button("Export CSV"); exp.setOnClickListener(v->exportCsv());
         io.addView(imp,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); io.addView(exp,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
-        io.setTranslationY(dp(-14));
+        io.setTranslationY(dp(-32));
         root.addView(io);
         setContentView(root);
     }
