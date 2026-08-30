@@ -112,7 +112,7 @@ public class MainActivity extends Activity {
         root.setPadding(dp(16), dp(16), dp(16), dp(16));
 
         TextView heading = new TextView(this);
-        heading.setText("On Hand 3.0.4 startup error");
+        heading.setText("On Hand 3.0.5 startup error");
         heading.setTextSize(20);
         heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(heading);
@@ -191,7 +191,7 @@ public class MainActivity extends Activity {
             return false;
         });
         Button scan = button("Camera");
-        scan.setOnClickListener(v -> toast("Camera scanning stays disabled in 3.0.4 while layout is tested"));
+        scan.setOnClickListener(v -> toast("Camera scanning stays disabled in 3.0.5 while layout is tested"));
         scanBar.addView(barcode, new LinearLayout.LayoutParams(0, dp(46), 1));
         scanBar.addView(scan, new LinearLayout.LayoutParams(dp(92), dp(46)));
         root.addView(scanBar);
@@ -237,16 +237,6 @@ public class MainActivity extends Activity {
         actionBar.addView(loc, new LinearLayout.LayoutParams(0, dp(42), 1));
         root.addView(actionBar);
 
-        LinearLayout io = new LinearLayout(this);
-        io.setOrientation(LinearLayout.HORIZONTAL);
-        Button imp = button("Import CSV");
-        imp.setOnClickListener(v -> importCsv());
-        Button exp = button("Export CSV");
-        exp.setOnClickListener(v -> exportCsv());
-        io.addView(imp, new LinearLayout.LayoutParams(0, dp(42), 1));
-        io.addView(exp, new LinearLayout.LayoutParams(0, dp(42), 1));
-        root.addView(io);
-
         summary = new TextView(this);
         summary.setTextSize(13);
         summary.setPadding(0, dp(4), 0, dp(2));
@@ -259,6 +249,16 @@ public class MainActivity extends Activity {
         list.setOnItemClickListener((p, v, pos, id) -> editRow(pos));
         root.addView(list, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
+        LinearLayout io = new LinearLayout(this);
+        io.setOrientation(LinearLayout.HORIZONTAL);
+        Button imp = button("Import CSV");
+        imp.setOnClickListener(v -> importCsv());
+        Button exp = button("Export CSV");
+        exp.setOnClickListener(v -> exportCsv());
+        io.addView(imp, new LinearLayout.LayoutParams(0, dp(42), 1));
+        io.addView(exp, new LinearLayout.LayoutParams(0, dp(42), 1));
+        root.addView(io);
+
         setContentView(root);
     }
 
@@ -269,7 +269,7 @@ public class MainActivity extends Activity {
     }
 
     private void refreshList() {
-        title.setText("On Hand 3.0.4 — " + sessionName);
+        title.setText("On Hand 3.0.5 — " + sessionName);
         visibleRows.clear();
         visibleRows.addAll(db.items(sessionId));
         ArrayList<String> lines = new ArrayList<>();
