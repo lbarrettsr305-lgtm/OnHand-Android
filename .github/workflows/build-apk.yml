@@ -3,7 +3,7 @@ name: Build OnHand APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, fix-layout-3.0.4 ]
+    branches: [ main, fix-layout-3.0.4, fix-layout-3.0.5 ]
   pull_request:
     branches: [ main ]
 
@@ -28,6 +28,6 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: OnHand-3.0.4-layout-test-apk
+          name: OnHand-3.0.5-layout-test-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
