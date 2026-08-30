@@ -1,0 +1,71 @@
+name: Build OnHand 3.0.12
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK 36
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Apply 3.0.12 fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
+          s = p.read_text()
+          old_root = 'LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(12),dp(10),dp(12),0);'
+          new_root = '''final int sidePadding=dp(12), topPadding=dp(10);\n        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(sidePadding,topPadding,sidePadding,dp(8));\n        root.setOnApplyWindowInsetsListener((v,insets)->{\n            int bottomInset=insets.getSystemWindowInsetBottom();\n            v.setPadding(sidePadding,topPadding,sidePadding,bottomInset+dp(8));\n            return insets;\n        });\n        root.requestApplyInsets();'''
+          if old_root in s:
+              s = s.replace(old_root, new_root, 1)
+          s = s.replace('        io.setTranslationY(dp(-32));\n', '', 1)
+          old_scan = 'IntentIntegrator integrator = new IntentIntegrator(this); integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES);'
+          new_scan = 'IntentIntegrator integrator = new IntentIntegrator(this); integrator.setCaptureActivity(ScanActivity.class); integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES);'
+          if old_scan not in s:
+              raise SystemExit('scanner marker not found')
+          s = s.replace(old_scan, new_scan, 1)
+          p.write_text(s)
+
+          m = Path('app/src/main/AndroidManifest.xml')
+          ms = m.read_text()
+          marker = '        <activity\n            android:name=".MainActivity"'
+          addition = '        <activity android:name=".ScanActivity" android:exported="false" />\n'
+          if addition not in ms:
+              if marker not in ms:
+                  raise SystemExit('manifest marker not found')
+              ms = ms.replace(marker, addition + marker, 1)
+          m.write_text(ms)
+
+          g = Path('app/build.gradle')
+          t = g.read_text().replace('versionCode 30010', 'versionCode 30012').replace("versionName '3.0.10'", "versionName '3.0.12'")
+          g.write_text(t)
+          PY
+      - name: Build release APK
+        run: gradle :app:assembleRelease --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OnHand-3.0.12-release-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Android-signing-tools-35
+          path: |
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/apksigner
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/lib/apksigner.jar
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/zipalign
+          if-no-files-found: error
