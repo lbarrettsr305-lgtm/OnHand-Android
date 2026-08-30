@@ -1,0 +1,80 @@
+name: Build OnHand 3.0.17
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK 36
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Enable AndroidX
+        run: echo "android.useAndroidX=true" > gradle.properties
+      - name: Apply 3.0.16 baseline
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          w = Path('.github/workflows/build-3016.yml').read_text()
+          marker = "          python3 - <<'PY'\n"
+          start = w.index(marker) + len(marker)
+          end = w.index("\n          PY", start)
+          code = textwrap.dedent(w[start:end])
+          exec(compile(code, 'build-3016-baseline', 'exec'))
+          PY
+      - name: Add unknown barcode choice
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          dbp = Path('app/src/main/java/com/iceinventory/onhand/InventoryDb.java')
+          d = dbp.read_text()
+          insert_before = '    public void setQuantity(long id, int quantity) {'
+          method = '''    public boolean barcodeExists(long sessionId, String barcode) {\n        if (sessionId <= 0 || barcode == null || barcode.trim().isEmpty()) return false;\n        try (Cursor c = getReadableDatabase().rawQuery(\n                "SELECT 1 FROM items WHERE session_id=? AND barcode=? LIMIT 1",\n                new String[]{String.valueOf(sessionId), barcode.trim()})) {\n            return c.moveToFirst();\n        }\n    }\n\n'''
+          if 'public boolean barcodeExists' not in d:
+              d = d.replace(insert_before, method + insert_before, 1)
+          dbp.write_text(d)
+
+          p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
+          s = p.read_text()
+          old_add = '''    private void addItem() { String code=barcode.getText().toString().trim(); if(code.isEmpty()){ toast("Enter or scan a barcode"); barcode.requestFocus(); return; } int q=1; try { q=Integer.parseInt(qty.getText().toString().trim()); } catch(Exception ignored){} if(q==0){toast("Quantity cannot be zero");return;} String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString(); db.addOrIncrement(sessionId,code,description.getText().toString(),q,loc); barcode.setText(""); description.setText(""); qty.setText("1"); barcode.requestFocus(); refreshList(); }'''
+          new_add = '''    private void addItem() { addItem(false); }\n\n    private void addItem(boolean resumeCameraScan) {\n        String code=barcode.getText().toString().trim();\n        if(code.isEmpty()){ toast("Enter or scan a barcode"); barcode.requestFocus(); return; }\n        int q=1;\n        try { q=Integer.parseInt(qty.getText().toString().trim()); } catch(Exception ignored){}\n        if(q==0){toast("Quantity cannot be zero");return;}\n        String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString();\n        String desc=description.getText().toString();\n        final int count=q;\n        final String itemLoc=loc;\n\n        if(!db.barcodeExists(sessionId, code)) {\n            continuousScan = false;\n            new AlertDialog.Builder(this)\n                    .setTitle("Barcode not listed")\n                    .setMessage(code + " is not in this inventory. Add it as a new item or ignore it?")\n                    .setPositiveButton("Add New Item", (dialog, which) -> {\n                        db.addOrIncrement(sessionId,code,desc,count,itemLoc);\n                        clearEntryFields();\n                        refreshList();\n                        toast("New item added");\n                        if(resumeCameraScan){ continuousScan=true; barcode.postDelayed(this::scanNextBarcode,200); }\n                    })\n                    .setNegativeButton("Ignore", (dialog, which) -> {\n                        clearEntryFields();\n                        toast("Barcode ignored");\n                        if(resumeCameraScan){ continuousScan=true; barcode.postDelayed(this::scanNextBarcode,200); }\n                    })\n                    .setOnCancelListener(dialog -> {\n                        if(resumeCameraScan){ continuousScan=true; barcode.postDelayed(this::scanNextBarcode,200); }\n                    })\n                    .show();\n            return;\n        }\n\n        db.addOrIncrement(sessionId,code,desc,count,itemLoc);\n        clearEntryFields();\n        refreshList();\n        if(resumeCameraScan){ continuousScan=true; barcode.postDelayed(this::scanNextBarcode,200); }\n    }\n\n    private void clearEntryFields() {\n        barcode.setText("");\n        description.setText("");\n        qty.setText("1");\n        barcode.requestFocus();\n    }'''
+          if old_add not in s:
+              raise SystemExit('addItem marker not found')
+          s = s.replace(old_add, new_add, 1)
+          s = s.replace('                            addItem();\n                            barcode.postDelayed(this::scanNextBarcode, 200);', '                            addItem(true);', 1)
+          p.write_text(s)
+
+          g = Path('app/build.gradle')
+          t = g.read_text().replace('versionCode 30016','versionCode 30017').replace("versionName '3.0.16'","versionName '3.0.17'")
+          g.write_text(t)
+          PY
+      - name: Build release APK
+        run: gradle :app:assembleRelease --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OnHand-3.0.17-release-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Android-signing-tools-35
+          path: |
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/apksigner
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/lib/apksigner.jar
+            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/zipalign
+          if-no-files-found: error
