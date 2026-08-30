@@ -24,10 +24,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+      - name: Raise CSV controls about 25 pixels
+        run: sed -i 's/io.setTranslationY(dp(8));//' app/src/main/java/com/iceinventory/onhand/MainActivity.java
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: OnHand-3.0.1-debug-apk
+          name: OnHand-3.0.7-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
