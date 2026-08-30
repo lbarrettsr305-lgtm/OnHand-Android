@@ -243,12 +243,6 @@ public class MainActivity extends Activity {
         summary.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(summary);
 
-        list = new ListView(this);
-        listAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<>());
-        list.setAdapter(listAdapter);
-        list.setOnItemClickListener((p, v, pos, id) -> editRow(pos));
-        root.addView(list, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-
         LinearLayout io = new LinearLayout(this);
         io.setOrientation(LinearLayout.HORIZONTAL);
         Button imp = button("Import CSV");
@@ -258,6 +252,12 @@ public class MainActivity extends Activity {
         io.addView(imp, new LinearLayout.LayoutParams(0, dp(42), 1));
         io.addView(exp, new LinearLayout.LayoutParams(0, dp(42), 1));
         root.addView(io);
+
+        list = new ListView(this);
+        listAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<>());
+        list.setAdapter(listAdapter);
+        list.setOnItemClickListener((p, v, pos, id) -> editRow(pos));
+        root.addView(list, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
         setContentView(root);
     }
