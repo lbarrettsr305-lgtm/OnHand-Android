@@ -6,7 +6,7 @@
     <application
         android:allowBackup="true"
         android:label="On Hand 3"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:theme="@style/OnHandTheme"
         android:usesCleartextTraffic="false">
         <activity
             android:name=".MainActivity"
