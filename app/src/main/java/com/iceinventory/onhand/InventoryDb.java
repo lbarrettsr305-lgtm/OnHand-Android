@@ -107,6 +107,24 @@ public final class InventoryDb extends SQLiteOpenHelper {
         return out;
     }
 
+    public boolean barcodeExists(long sessionId, String barcode) {
+        if (sessionId <= 0 || barcode == null || barcode.trim().isEmpty()) return false;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT 1 FROM items WHERE session_id=? AND barcode=? LIMIT 1",
+                new String[]{String.valueOf(sessionId), barcode.trim()})) {
+            return c.moveToFirst();
+        }
+    }
+
+    public String descriptionForBarcode(long sessionId, String barcode) {
+        if (sessionId <= 0 || barcode == null || barcode.trim().isEmpty()) return "";
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT description FROM items WHERE session_id=? AND barcode=? AND description<>'' ORDER BY updated_at DESC LIMIT 1",
+                new String[]{String.valueOf(sessionId), barcode.trim()})) {
+            return c.moveToFirst() ? c.getString(0) : "";
+        }
+    }
+
     public void addOrIncrement(long sessionId, String barcode, String description, int quantity, String location) {
         if (sessionId <= 0) throw new IllegalStateException("No active inventory session");
         SQLiteDatabase db = getWritableDatabase();
