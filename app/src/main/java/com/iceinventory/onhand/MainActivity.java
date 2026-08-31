@@ -7,11 +7,10 @@ import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.text.InputType;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -33,12 +32,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import com.google.zxing.integration.android.IntentIntegrator;
-import com.google.zxing.integration.android.IntentResult;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
 
 public class MainActivity extends Activity {
     private static final String TAG="OnHand";
     private static final int REQ_EXPORT=1002, REQ_IMPORT=1003;
+    private static final String SETTINGS="onhand_settings";
+    private static final String KEY_UNKNOWN_MODE="unknown_barcode_mode";
     private InventoryDb db;
     private long sessionId;
     private String sessionName="Default Inventory";
@@ -139,13 +140,22 @@ public class MainActivity extends Activity {
         LinearLayout sessionBar=new LinearLayout(this); sessionBar.setOrientation(LinearLayout.HORIZONTAL);
         Button choose=button("Inventories"); choose.setOnClickListener(v->chooseSession());
         Button fresh=button("New"); fresh.setOnClickListener(v->newSession());
+        Button options=button("Options"); options.setOnClickListener(v->showUnknownBarcodeOptions());
         sessionBar.addView(choose,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
-        sessionBar.addView(fresh,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); root.addView(sessionBar);
+        sessionBar.addView(fresh,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
+        sessionBar.addView(options,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
+        root.addView(sessionBar);
 
         root.addView(label("Barcode"));
         LinearLayout scanBar=new LinearLayout(this); scanBar.setOrientation(LinearLayout.HORIZONTAL);
         barcode=new EditText(this); barcode.setSingleLine(true); barcode.setTextSize(20); barcode.setHint("Scan or type barcode"); barcode.setInputType(InputType.TYPE_CLASS_TEXT);
-        barcode.setOnEditorActionListener((v,action,event)->{ if(event!=null && event.getKeyCode()==KeyEvent.KEYCODE_ENTER){ qty.requestFocus(); return true;} return false; });
+        barcode.setOnEditorActionListener((v,action,event)->{
+            if(event!=null && event.getKeyCode()==KeyEvent.KEYCODE_ENTER){
+                handleScannedBarcode(barcode.getText().toString().trim());
+                return true;
+            }
+            return false;
+        });
         Button scan=button("Scan"); scan.setOnClickListener(v->scanBarcode());
         scanBar.addView(barcode,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); scanBar.addView(scan); root.addView(scanBar);
 
@@ -172,6 +182,82 @@ public class MainActivity extends Activity {
         setContentView(root);
     }
 
+    private String getUnknownBarcodeMode() {
+        return getSharedPreferences(SETTINGS, MODE_PRIVATE).getString(KEY_UNKNOWN_MODE, "add");
+    }
+
+    private void showUnknownBarcodeOptions() {
+        String[] choices={"Add unknown barcode", "Ignore unknown barcode", "Search internet and add"};
+        String mode=getUnknownBarcodeMode();
+        int checked="ignore".equals(mode)?1:("search".equals(mode)?2:0);
+        new AlertDialog.Builder(this)
+                .setTitle("Unknown barcode behavior")
+                .setSingleChoiceItems(choices, checked, (dialog, which) -> {
+                    String selected=which==1?"ignore":(which==2?"search":"add");
+                    getSharedPreferences(SETTINGS, MODE_PRIVATE).edit().putString(KEY_UNKNOWN_MODE, selected).apply();
+                    dialog.dismiss();
+                    toast("Unknown barcode option saved");
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void handleScannedBarcode(String code) {
+        if (code == null) code = "";
+        code = code.trim();
+        if (code.isEmpty()) { toast("No barcode detected"); barcode.requestFocus(); return; }
+        barcode.setText(code);
+        barcode.setSelection(code.length());
+        qty.setText("");
+
+        if (db.barcodeExists(sessionId, code)) {
+            String savedDescription=db.descriptionForBarcode(sessionId, code);
+            if (savedDescription != null && !savedDescription.trim().isEmpty()) description.setText(savedDescription);
+            qty.requestFocus();
+            return;
+        }
+
+        String mode=getUnknownBarcodeMode();
+        if ("ignore".equals(mode)) {
+            barcode.setText("");
+            description.setText("");
+            qty.setText("");
+            toast("Unknown barcode ignored");
+            barcode.requestFocus();
+            return;
+        }
+        if (!"search".equals(mode)) {
+            description.setText("");
+            qty.requestFocus();
+            return;
+        }
+
+        description.setText("");
+        toast("Searching for barcode description...");
+        final String lookupCode=code;
+        new Thread(() -> {
+            try {
+                String found=BarcodeLookup.lookupDescription(lookupCode);
+                runOnUiThread(() -> {
+                    if (!lookupCode.equals(barcode.getText().toString().trim())) return;
+                    if (found != null && !found.trim().isEmpty()) {
+                        description.setText(found.trim());
+                        toast("Description found");
+                    } else {
+                        toast("No internet description found");
+                    }
+                    qty.requestFocus();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (!lookupCode.equals(barcode.getText().toString().trim())) return;
+                    toast(e.getMessage()==null?"Internet lookup failed":e.getMessage());
+                    qty.requestFocus();
+                });
+            }
+        }).start();
+    }
+
     private void refreshLocations() { List<String> locs=db.locations(); ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,locs); location.setAdapter(a); }
 
     private void refreshList() {
@@ -196,7 +282,16 @@ public class MainActivity extends Activity {
         barcode.setText(""); description.setText(""); qty.setText(""); barcode.requestFocus(); refreshList();
     }
 
-    private void scanBarcode() { try { IntentIntegrator integrator = new IntentIntegrator(this); integrator.setDesiredBarcodeFormats(IntentIntegrator.ALL_CODE_TYPES); integrator.setPrompt("Scan item barcode"); integrator.setBeepEnabled(true); integrator.setOrientationLocked(false); integrator.initiateScan(); } catch (Throwable e) { showError("Scanner could not start", e instanceof Exception ? (Exception)e : new Exception(e)); } }
+    private void scanBarcode() {
+        try {
+            GmsBarcodeScanner scanner = GmsBarcodeScanning.getClient(this);
+            scanner.startScan()
+                    .addOnSuccessListener(result -> handleScannedBarcode(result.getRawValue()))
+                    .addOnFailureListener(e -> showError("Scanner could not start", e instanceof Exception ? (Exception)e : new Exception(e)));
+        } catch (Throwable e) {
+            showError("Scanner could not start", e instanceof Exception ? (Exception)e : new Exception(e));
+        }
+    }
 
     private void addLocation() { EditText e=new EditText(this); e.setHint("Location name"); new AlertDialog.Builder(this).setTitle("Add location").setView(e).setPositiveButton("Add",(d,w)->{String s=e.getText().toString().trim();if(!s.isEmpty()){db.addLocation(s);refreshLocations();}}).setNegativeButton("Cancel",null).show(); }
 
@@ -213,17 +308,6 @@ public class MainActivity extends Activity {
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);
         if(resultCode!=RESULT_OK||data==null)return;
-        IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-        if (scanResult != null) {
-            String c = scanResult.getContents();
-            if (c != null) {
-                barcode.setText(c);
-                barcode.setSelection(c.length());
-                qty.setText("");
-                qty.post(() -> qty.requestFocus());
-            }
-            return;
-        }
         if(requestCode==REQ_EXPORT){writeExport(data.getData());} else if(requestCode==REQ_IMPORT){readImport(data.getData());}
     }
 
