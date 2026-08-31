@@ -1,6 +1,10 @@
 package com.iceinventory.onhand;
 
-import com.journeyapps.barcodescanner.CaptureActivity;
+import android.app.Activity;
 
-public class ScanActivity extends CaptureActivity {
+/**
+ * Legacy placeholder retained for compatibility with older builds.
+ * Barcode scanning is handled by Google Play Services in MainActivity.
+ */
+public class ScanActivity extends Activity {
 }
