@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="OnHandTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#F7FBFD</item>
+        <item name="android:colorAccent">#0097A7</item>
+        <item name="android:listViewStyle">@style/OnHandListView</item>
+    </style>
+
+    <style name="OnHandListView" parent="@android:style/Widget.Material.ListView">
+        <item name="android:background">#DFF3F8</item>
+        <item name="android:divider">#FFFFFF</item>
+        <item name="android:dividerHeight">2dp</item>
+        <item name="android:listSelector">@drawable/onhand_list_selector</item>
+        <item name="android:cacheColorHint">#DFF3F8</item>
+    </style>
+</resources>
