@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    paths:
+      - 'app/**'
+      - '.github/workflows/build-3018.yml'
 
 jobs:
   build:
@@ -24,77 +27,10 @@ jobs:
           gradle-version: '8.13'
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
-      - name: Apply 3.0.17 baseline
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import textwrap
-          w = Path('.github/workflows/build-3017.yml').read_text()
-          marker = "          python3 - <<'PY'\n"
-          starts=[]
-          pos=0
-          while True:
-              try:
-                  i=w.index(marker,pos)
-              except ValueError:
-                  break
-              starts.append(i+len(marker))
-              pos=i+len(marker)
-          for start in starts:
-              end=w.index("\n          PY",start)
-              code=textwrap.dedent(w[start:end])
-              exec(compile(code,'build-3017-baseline','exec'))
-          PY
-      - name: Apply 3.0.18 scan behavior
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
-          s=p.read_text()
-
-          # Quantity is blank by default and after each saved/ignored item.
-          s=s.replace('qty.setText("1")','qty.setText("")')
-
-          # Add a separate Options button beside Inventories/New.
-          old='''        Button fresh=button("New"); fresh.setOnClickListener(v->newSession());\n        sessionBar.addView(choose,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));\n        sessionBar.addView(fresh,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); root.addView(sessionBar);'''
-          new='''        Button fresh=button("New"); fresh.setOnClickListener(v->newSession());\n        Button options=button("Options"); options.setOnClickListener(v->showUnknownBarcodeOptions());\n        sessionBar.addView(choose,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));\n        sessionBar.addView(fresh,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));\n        sessionBar.addView(options,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); root.addView(sessionBar);'''
-          if old in s:
-              s=s.replace(old,new,1)
-
-          # Camera scan must stop on one barcode and go to Quantity instead of auto-saving.
-          oldscan='''                        if (c != null && !c.trim().isEmpty()) {\n                            barcode.setText(c);\n                            barcode.setSelection(c.length());\n                            addItem(true);\n                        } else {\n                            continuousScan = false;\n                        }'''
-          newscan='''                        if (c != null && !c.trim().isEmpty()) {\n                            continuousScan = false;\n                            barcode.setText(c);\n                            barcode.setSelection(c.length());\n                            qty.setText("");\n                            handleScannedBarcode(c.trim());\n                        } else {\n                            continuousScan = false;\n                        }'''
-          if oldscan in s:
-              s=s.replace(oldscan,newscan,1)
-          else:
-              s=s.replace('''                            addItem();\n                            barcode.postDelayed(this::scanNextBarcode, 200);''','''                            continuousScan = false;\n                            qty.setText("");\n                            handleScannedBarcode(c.trim());''',1)
-
-          # Replace 3.0.17's per-item dialog logic with saved mode behavior.
-          start=s.find('    private void addItem() { addItem(false); }')
-          end=s.find('    private void scanBarcode()',start)
-          if start!=-1 and end!=-1:
-              replacement='''    private void addItem() {\n        String code=barcode.getText().toString().trim();\n        if(code.isEmpty()){ toast("Enter or scan a barcode"); barcode.requestFocus(); return; }\n        if(!db.barcodeExists(sessionId,code) && "ignore".equals(getUnknownBarcodeMode())) {\n            clearEntryFields();\n            toast("Unknown barcode ignored");\n            return;\n        }\n        String qtyText=qty.getText().toString().trim();\n        if(qtyText.isEmpty()){ toast("Enter quantity"); qty.requestFocus(); return; }\n        int q;\n        try { q=Integer.parseInt(qtyText); } catch(Exception ignored){ toast("Enter a valid quantity"); qty.requestFocus(); return; }\n        if(q==0){ toast("Quantity cannot be zero"); qty.requestFocus(); return; }\n        String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString();\n        db.addOrIncrement(sessionId,code,description.getText().toString(),q,loc);\n        clearEntryFields();\n        refreshList();\n    }\n\n    private void clearEntryFields() {\n        barcode.setText("");\n        description.setText("");\n        qty.setText("");\n        barcode.requestFocus();\n    }\n\n    private String getUnknownBarcodeMode() {\n        return getSharedPreferences("onhand_settings", MODE_PRIVATE)\n                .getString("unknown_barcode_mode", "add");\n    }\n\n    private void showUnknownBarcodeOptions() {\n        String[] choices={"Add unknown barcode", "Ignore unknown barcode", "Search internet and add"};\n        String mode=getUnknownBarcodeMode();\n        int checked="ignore".equals(mode)?1:("search".equals(mode)?2:0);\n        new AlertDialog.Builder(this)\n                .setTitle("Unknown barcode")\n                .setSingleChoiceItems(choices,checked,(dialog,which)->{\n                    String selected=which==1?"ignore":(which==2?"search":"add");\n                    getSharedPreferences("onhand_settings", MODE_PRIVATE).edit()\n                            .putString("unknown_barcode_mode",selected).apply();\n                    dialog.dismiss();\n                    toast("Unknown barcode: " + choices[which]);\n                })\n                .setNegativeButton("Cancel",null)\n                .show();\n    }\n\n    private void handleScannedBarcode(String code) {\n        if(db.barcodeExists(sessionId,code)) {\n            qty.post(() -> qty.requestFocus());\n            return;\n        }\n        String mode=getUnknownBarcodeMode();\n        if("ignore".equals(mode)) {\n            clearEntryFields();\n            toast("Unknown barcode ignored");\n            return;\n        }\n        if("search".equals(mode)) {\n            description.setText("");\n            toast("Searching internet for description...");\n            new Thread(() -> {\n                try {\n                    String found=BarcodeLookup.lookupDescription(code);\n                    runOnUiThread(() -> {\n                        if(!code.equals(barcode.getText().toString().trim())) return;\n                        if(found!=null && !found.trim().isEmpty()) {\n                            description.setText(found.trim());\n                            toast("Description found");\n                        } else {\n                            toast("No internet description found");\n                        }\n                        qty.requestFocus();\n                    });\n                } catch(Exception e) {\n                    runOnUiThread(() -> {\n                        toast(e.getMessage()==null?"Internet lookup failed":e.getMessage());\n                        qty.requestFocus();\n                    });\n                }\n            }).start();\n            return;\n        }\n        qty.post(() -> qty.requestFocus());\n    }\n\n'''
-              s=s[:start]+replacement+s[end:]
-
-          p.write_text(s)
-
-          g=Path('app/build.gradle')
-          t=g.read_text().replace('versionCode 30017','versionCode 30018').replace("versionName '3.0.17'","versionName '3.0.18'")
-          g.write_text(t)
-          PY
-      - name: Build release APK
-        run: gradle :app:assembleRelease --stacktrace
+      - name: Build installable APK
+        run: gradle :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: OnHand-3.0.18-release-unsigned
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Android-signing-tools-35
-          path: |
-            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/apksigner
-            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/lib/apksigner.jar
-            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/zipalign
+          name: OnHand-3.0.18-installable
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
