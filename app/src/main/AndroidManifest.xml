@@ -5,7 +5,8 @@
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <application
         android:allowBackup="true"
-        android:label="On Hand 3"
+        android:label="iCE Onhand Inventory"
+        android:icon="@drawable/ice_onhand_icon"
         android:theme="@style/OnHandTheme"
         android:usesCleartextTraffic="false">
         <activity
