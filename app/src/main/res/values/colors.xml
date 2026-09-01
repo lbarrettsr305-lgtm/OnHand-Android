@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ice_black">#000000</color>
+    <color name="ice_green">#009B3A</color>
+    <color name="ice_gold">#FFD100</color>
+    <color name="ice_dark_green">#062B16</color>
+    <color name="ice_white">#FFFFFF</color>
+</resources>

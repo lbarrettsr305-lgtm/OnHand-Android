@@ -16,9 +16,9 @@ android {
 
     signingConfigs {
         release {
-            def keystorePath = System.getenv('ONHAND_KEYSTORE_PATH')
-            if (keystorePath) {
-                storeFile file(keystorePath)
+            def ksPath = System.getenv('ONHAND_KEYSTORE_PATH')
+            if (ksPath) {
+                storeFile file(ksPath)
                 storePassword System.getenv('ONHAND_STORE_PASSWORD')
                 keyAlias System.getenv('ONHAND_KEY_ALIAS')
                 keyPassword System.getenv('ONHAND_KEY_PASSWORD')
