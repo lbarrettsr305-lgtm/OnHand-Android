@@ -31,8 +31,27 @@ jobs:
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
         run: |
-          test -n "$ONHAND_KEYSTORE_BASE64"
-          printf '%s' "$ONHAND_KEYSTORE_BASE64" | tr -d '\r\n\t ' | base64 --decode --ignore-garbage > "$RUNNER_TEMP/onhand-release.jks"
+          python3 - <<'PY'
+          import os, re, base64
+          s = os.environ.get('ONHAND_KEYSTORE_BASE64', '').strip()
+          if not s:
+              raise SystemExit('ONHAND_KEYSTORE_BASE64 is empty')
+          if 'ONHAND_KEYSTORE_BASE64=' in s:
+              s = s.split('ONHAND_KEYSTORE_BASE64=', 1)[1]
+          s = s.strip().strip('"').strip("'").strip('`')
+          s = re.sub(r'\s+', '', s)
+          s += '=' * ((4 - len(s) % 4) % 4)
+          try:
+              data = base64.b64decode(s, validate=False)
+          except Exception as e:
+              raise SystemExit(f'Unable to decode keystore secret: {e}')
+          if len(data) < 100:
+              raise SystemExit('Decoded keystore is unexpectedly small')
+          path = os.path.join(os.environ['RUNNER_TEMP'], 'onhand-release.jks')
+          with open(path, 'wb') as f:
+              f.write(data)
+          print(f'Keystore restored ({len(data)} bytes)')
+          PY
           test -s "$RUNNER_TEMP/onhand-release.jks"
       - name: Build signed release APK
         env:
