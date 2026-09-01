@@ -13,7 +13,17 @@ import java.nio.charset.StandardCharsets;
 public final class BarcodeLookup {
     private BarcodeLookup() {}
 
-    public static String lookupDescription(String barcode) throws Exception {
+    public static final class Result {
+        public final String description;
+        public final String imageUrl;
+
+        public Result(String description, String imageUrl) {
+            this.description = description == null ? "" : description;
+            this.imageUrl = imageUrl == null ? "" : imageUrl;
+        }
+    }
+
+    public static Result lookup(String barcode) throws Exception {
         String encoded = URLEncoder.encode(barcode, StandardCharsets.UTF_8.name());
         URL url = new URL("https://api.upcitemdb.com/prod/trial/lookup?upc=" + encoded);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -40,10 +50,21 @@ public final class BarcodeLookup {
         if (items == null || items.length() == 0) return null;
         JSONObject item = items.optJSONObject(0);
         if (item == null) return null;
+
         String title = item.optString("title", "").trim();
         String brand = item.optString("brand", "").trim();
-        if (!title.isEmpty()) return title;
-        if (!brand.isEmpty()) return brand;
-        return null;
+        String description = !title.isEmpty() ? title : brand;
+
+        String imageUrl = "";
+        JSONArray images = item.optJSONArray("images");
+        if (images != null && images.length() > 0) imageUrl = images.optString(0, "").trim();
+
+        if (description.isEmpty() && imageUrl.isEmpty()) return null;
+        return new Result(description, imageUrl);
+    }
+
+    public static String lookupDescription(String barcode) throws Exception {
+        Result result = lookup(barcode);
+        return result == null ? null : result.description;
     }
 }
