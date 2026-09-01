@@ -29,8 +29,10 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
@@ -171,6 +173,7 @@ public class MainActivity extends Activity {
         actionBar.addView(add,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,2)); actionBar.addView(loc,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); root.addView(actionBar);
 
         summary=new TextView(this); summary.setPadding(0,dp(8),0,dp(4)); summary.setTypeface(Typeface.DEFAULT,Typeface.BOLD); root.addView(summary);
+        Button locationTotals=button("Location Totals"); locationTotals.setOnClickListener(v->showLocationTotals()); root.addView(locationTotals);
         list=new ListView(this); listAdapter=new ArrayAdapter<>(this,android.R.layout.simple_list_item_2,android.R.id.text1,new ArrayList<>()); list.setAdapter(listAdapter); list.setOnItemClickListener((p,v,pos,id)->editRow(pos)); root.addView(list,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
 
         LinearLayout io=new LinearLayout(this); io.setOrientation(LinearLayout.HORIZONTAL);
@@ -266,6 +269,29 @@ public class MainActivity extends Activity {
         ArrayList<String> lines=new ArrayList<>(); int units=0;
         for (InventoryDb.Row r:visibleRows){ units+=r.quantity; String d=r.description==null||r.description.isEmpty()?"":(" — "+r.description); lines.add(r.barcode+"   Qty "+r.quantity+d+"\n"+r.location); }
         listAdapter.clear(); listAdapter.addAll(lines); listAdapter.notifyDataSetChanged(); summary.setText(visibleRows.size()+" item lines • "+units+" total units");
+    }
+
+    private void showLocationTotals() {
+        Map<String,Integer> totals=new LinkedHashMap<>();
+        int grandTotal=0;
+        for (InventoryDb.Row r:visibleRows) {
+            String loc=(r.location==null||r.location.trim().isEmpty())?"Main":r.location.trim();
+            int value=totals.containsKey(loc)?totals.get(loc):0;
+            totals.put(loc,value+r.quantity);
+            grandTotal+=r.quantity;
+        }
+        if(totals.isEmpty()){ toast("No counts to total yet"); return; }
+        StringBuilder message=new StringBuilder();
+        for(Map.Entry<String,Integer> entry:totals.entrySet()) {
+            if(message.length()>0) message.append("\n");
+            message.append(entry.getKey()).append(": ").append(entry.getValue());
+        }
+        message.append("\n\nGrand Total: ").append(grandTotal);
+        new AlertDialog.Builder(this)
+                .setTitle("Quantity Totals by Location")
+                .setMessage(message.toString())
+                .setPositiveButton("OK",null)
+                .show();
     }
 
     private void addItem() {
