@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -15,6 +17,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -25,6 +28,8 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -42,6 +47,8 @@ public class MainActivity extends Activity {
     private static final int REQ_EXPORT=1002, REQ_IMPORT=1003;
     private static final String SETTINGS="onhand_settings";
     private static final String KEY_UNKNOWN_MODE="unknown_barcode_mode";
+    private static final String INTERNET_PREFIX="iCE-";
+    private static final String IMAGE_KEY_PREFIX="internet_image_";
     private InventoryDb db;
     private long sessionId;
     private String sessionName="Default Inventory";
@@ -173,7 +180,12 @@ public class MainActivity extends Activity {
         actionBar.addView(add,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,2)); actionBar.addView(loc,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); root.addView(actionBar);
 
         summary=new TextView(this); summary.setPadding(0,dp(8),0,dp(4)); summary.setTypeface(Typeface.DEFAULT,Typeface.BOLD); root.addView(summary);
-        Button locationTotals=button("Location Totals"); locationTotals.setOnClickListener(v->showLocationTotals()); root.addView(locationTotals);
+        LinearLayout reportBar=new LinearLayout(this); reportBar.setOrientation(LinearLayout.HORIZONTAL);
+        Button locationTotals=button("Location Totals"); locationTotals.setOnClickListener(v->showLocationTotals());
+        Button internetItems=button("Internet Items"); internetItems.setOnClickListener(v->showInternetItems());
+        reportBar.addView(locationTotals,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
+        reportBar.addView(internetItems,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
+        root.addView(reportBar);
         list=new ListView(this); listAdapter=new ArrayAdapter<>(this,android.R.layout.simple_list_item_2,android.R.id.text1,new ArrayList<>()); list.setAdapter(listAdapter); list.setOnItemClickListener((p,v,pos,id)->editRow(pos)); root.addView(list,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
 
         LinearLayout io=new LinearLayout(this); io.setOrientation(LinearLayout.HORIZONTAL);
@@ -240,12 +252,17 @@ public class MainActivity extends Activity {
         final String lookupCode=code;
         new Thread(() -> {
             try {
-                String found=BarcodeLookup.lookupDescription(lookupCode);
+                BarcodeLookup.Result found=BarcodeLookup.lookup(lookupCode);
                 runOnUiThread(() -> {
                     if (!lookupCode.equals(barcode.getText().toString().trim())) return;
-                    if (found != null && !found.trim().isEmpty()) {
-                        description.setText(found.trim());
-                        toast("Description found");
+                    if (found != null && found.description != null && !found.description.trim().isEmpty()) {
+                        String internetDescription=found.description.trim();
+                        if (!internetDescription.startsWith(INTERNET_PREFIX)) internetDescription=INTERNET_PREFIX+internetDescription;
+                        description.setText(internetDescription);
+                        if (found.imageUrl != null && !found.imageUrl.trim().isEmpty()) {
+                            getSharedPreferences(SETTINGS,MODE_PRIVATE).edit().putString(IMAGE_KEY_PREFIX+lookupCode,found.imageUrl.trim()).apply();
+                        }
+                        toast("Internet item found");
                     } else {
                         toast("No internet description found");
                     }
@@ -292,6 +309,54 @@ public class MainActivity extends Activity {
                 .setMessage(message.toString())
                 .setPositiveButton("OK",null)
                 .show();
+    }
+
+    private void showInternetItems() {
+        ArrayList<InventoryDb.Row> internetRows=new ArrayList<>();
+        ArrayList<String> labels=new ArrayList<>();
+        for(InventoryDb.Row r:db.items(sessionId)) {
+            String d=r.description==null?"":r.description.trim();
+            if(d.startsWith(INTERNET_PREFIX)) {
+                internetRows.add(r);
+                labels.add(d+"\n"+r.barcode+"   Qty "+r.quantity+"   "+r.location);
+            }
+        }
+        if(internetRows.isEmpty()){ toast("No internet-added items yet"); return; }
+        new AlertDialog.Builder(this)
+                .setTitle("Internet Items ("+internetRows.size()+")")
+                .setItems(labels.toArray(new String[0]),(dialog,which)->showInternetItemDetail(internetRows.get(which)))
+                .setNegativeButton("Close",null)
+                .show();
+    }
+
+    private void showInternetItemDetail(InventoryDb.Row r) {
+        LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(20),dp(8),dp(20),dp(8));
+        TextView details=new TextView(this); details.setText(r.description+"\n\nBarcode: "+r.barcode+"\nQuantity: "+r.quantity+"\nLocation: "+r.location); details.setTextSize(16); box.addView(details);
+        String imageUrl=getSharedPreferences(SETTINGS,MODE_PRIVATE).getString(IMAGE_KEY_PREFIX+r.barcode,"");
+        ImageView image=new ImageView(this); image.setAdjustViewBounds(true); image.setScaleType(ImageView.ScaleType.CENTER_INSIDE); box.addView(image,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(240)));
+        TextView imageStatus=new TextView(this); imageStatus.setGravity(Gravity.CENTER); imageStatus.setText(imageUrl.isEmpty()?"No product picture available":"Loading product picture..."); box.addView(imageStatus);
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Internet Item").setView(box).setPositiveButton("Close",null).create();
+        dialog.show();
+        if(!imageUrl.isEmpty()) {
+            new Thread(() -> {
+                Bitmap bitmap=loadBitmap(imageUrl);
+                runOnUiThread(() -> {
+                    if(bitmap!=null){ image.setImageBitmap(bitmap); imageStatus.setText(""); }
+                    else imageStatus.setText("Picture could not be loaded");
+                });
+            }).start();
+        }
+    }
+
+    private Bitmap loadBitmap(String imageUrl) {
+        HttpURLConnection conn=null;
+        try {
+            conn=(HttpURLConnection)new URL(imageUrl).openConnection();
+            conn.setConnectTimeout(8000); conn.setReadTimeout(8000); conn.setDoInput(true); conn.connect();
+            if(conn.getResponseCode()<200||conn.getResponseCode()>=300)return null;
+            try(InputStream in=conn.getInputStream()){ return BitmapFactory.decodeStream(in); }
+        } catch(Exception e) { Log.w(TAG,"Product image load failed",e); return null; }
+        finally { if(conn!=null)conn.disconnect(); }
     }
 
     private void addItem() {
