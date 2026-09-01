@@ -32,7 +32,8 @@ jobs:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
         run: |
           test -n "$ONHAND_KEYSTORE_BASE64"
-          echo "$ONHAND_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/onhand-release.jks"
+          printf '%s' "$ONHAND_KEYSTORE_BASE64" | tr -d '\r\n\t ' | base64 --decode --ignore-garbage > "$RUNNER_TEMP/onhand-release.jks"
+          test -s "$RUNNER_TEMP/onhand-release.jks"
       - name: Build signed release APK
         env:
           ONHAND_KEYSTORE_PATH: ${{ runner.temp }}/onhand-release.jks
