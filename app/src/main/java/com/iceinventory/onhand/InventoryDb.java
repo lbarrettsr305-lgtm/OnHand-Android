@@ -8,10 +8,12 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class InventoryDb extends SQLiteOpenHelper {
     public static final String DB_NAME = "onhand302.db";
     private static final int DB_VERSION = 1;
+    private static final int MIN_PARTIAL_LENGTH = 4;
 
     public static final class Row {
         public long id;
@@ -107,20 +109,64 @@ public final class InventoryDb extends SQLiteOpenHelper {
         return out;
     }
 
-    public boolean barcodeExists(long sessionId, String barcode) {
-        if (sessionId <= 0 || barcode == null || barcode.trim().isEmpty()) return false;
-        try (Cursor c = getReadableDatabase().rawQuery(
-                "SELECT 1 FROM items WHERE session_id=? AND barcode=? LIMIT 1",
-                new String[]{String.valueOf(sessionId), barcode.trim()})) {
-            return c.moveToFirst();
+    private String normalizeBarcode(String value) {
+        if (value == null) return "";
+        String upper = value.trim().toUpperCase(Locale.US);
+        StringBuilder out = new StringBuilder(upper.length());
+        for (int i = 0; i < upper.length(); i++) {
+            char ch = upper.charAt(i);
+            if (Character.isLetterOrDigit(ch)) out.append(ch);
         }
+        return out.toString();
+    }
+
+    private String resolveBarcode(long sessionId, String scanned) {
+        if (sessionId <= 0 || scanned == null || scanned.trim().isEmpty()) return null;
+        String raw = scanned.trim();
+
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT barcode FROM items WHERE session_id=? AND barcode=? LIMIT 1",
+                new String[]{String.valueOf(sessionId), raw})) {
+            if (c.moveToFirst()) return c.getString(0);
+        }
+
+        String scanNorm = normalizeBarcode(raw);
+        if (scanNorm.length() < MIN_PARTIAL_LENGTH) return null;
+
+        String unique = null;
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT DISTINCT barcode FROM items WHERE session_id=?",
+                new String[]{String.valueOf(sessionId)})) {
+            while (c.moveToNext()) {
+                String candidate = c.getString(0);
+                String candidateNorm = normalizeBarcode(candidate);
+                if (candidateNorm.length() < MIN_PARTIAL_LENGTH) continue;
+
+                boolean match = candidateNorm.contains(scanNorm) || scanNorm.contains(candidateNorm);
+                if (!match) continue;
+
+                if (unique == null) {
+                    unique = candidate;
+                } else if (!normalizeBarcode(unique).equals(candidateNorm)) {
+                    // More than one database barcode matches the partial scan.
+                    // Do not guess; treat it as unknown so the user can refine the scan.
+                    return null;
+                }
+            }
+        }
+        return unique;
+    }
+
+    public boolean barcodeExists(long sessionId, String barcode) {
+        return resolveBarcode(sessionId, barcode) != null;
     }
 
     public String descriptionForBarcode(long sessionId, String barcode) {
-        if (sessionId <= 0 || barcode == null || barcode.trim().isEmpty()) return "";
+        String resolved = resolveBarcode(sessionId, barcode);
+        if (resolved == null) return "";
         try (Cursor c = getReadableDatabase().rawQuery(
                 "SELECT description FROM items WHERE session_id=? AND barcode=? AND description<>'' ORDER BY updated_at DESC LIMIT 1",
-                new String[]{String.valueOf(sessionId), barcode.trim()})) {
+                new String[]{String.valueOf(sessionId), resolved})) {
             return c.moveToFirst() ? c.getString(0) : "";
         }
     }
@@ -128,7 +174,9 @@ public final class InventoryDb extends SQLiteOpenHelper {
     public void addOrIncrement(long sessionId, String barcode, String description, int quantity, String location) {
         if (sessionId <= 0) throw new IllegalStateException("No active inventory session");
         SQLiteDatabase db = getWritableDatabase();
-        String safeBarcode = barcode == null ? "" : barcode.trim();
+        String enteredBarcode = barcode == null ? "" : barcode.trim();
+        String resolved = resolveBarcode(sessionId, enteredBarcode);
+        String safeBarcode = resolved != null ? resolved : enteredBarcode;
         String safeLocation = location == null || location.trim().isEmpty() ? "Main" : location.trim();
         String[] args = { String.valueOf(sessionId), safeBarcode, safeLocation };
         try (Cursor c = db.rawQuery("SELECT id,quantity FROM items WHERE session_id=? AND barcode=? AND location=?", args)) {
