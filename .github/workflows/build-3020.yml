@@ -1,4 +1,4 @@
-name: Build OnHand 3.0.20 Signed
+name: Build iCE On hand inventory 3.0.20 Signed
 
 on:
   workflow_dispatch:
@@ -42,8 +42,10 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
       - name: Verify APK signature
         run: apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-On-hand-inventory-3.0.20.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: OnHand-3.0.20-signed-installable
-          path: app/build/outputs/apk/release/app-release.apk
+          name: iCE-On-hand-inventory-3.0.20
+          path: app/build/outputs/apk/release/iCE-On-hand-inventory-3.0.20.apk
           if-no-files-found: error
