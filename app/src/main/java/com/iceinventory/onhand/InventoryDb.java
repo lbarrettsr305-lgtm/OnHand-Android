@@ -170,11 +170,22 @@ public final class InventoryDb extends SQLiteOpenHelper {
     }
 
     public void addOrIncrement(long sessionId, String barcode, String description, int quantity, String location) {
+        addOrIncrementInternal(sessionId, barcode, description, quantity, location, true);
+    }
+
+    public void addOrIncrementExact(long sessionId, String barcode, String description, int quantity, String location) {
+        addOrIncrementInternal(sessionId, barcode, description, quantity, location, false);
+    }
+
+    private void addOrIncrementInternal(long sessionId, String barcode, String description, int quantity, String location, boolean allowPartialResolution) {
         if (sessionId <= 0) throw new IllegalStateException("No active inventory session");
         SQLiteDatabase db = getWritableDatabase();
         String enteredBarcode = barcode == null ? "" : barcode.trim();
-        String resolved = resolveBarcode(sessionId, enteredBarcode);
-        String safeBarcode = resolved != null ? resolved : enteredBarcode;
+        String safeBarcode = enteredBarcode;
+        if (allowPartialResolution) {
+            String resolved = resolveBarcode(sessionId, enteredBarcode);
+            if (resolved != null) safeBarcode = resolved;
+        }
         String safeLocation = location == null || location.trim().isEmpty() ? "Main" : location.trim();
         String[] args = { String.valueOf(sessionId), safeBarcode, safeLocation };
         try (Cursor c = db.rawQuery("SELECT id,quantity FROM items WHERE session_id=? AND barcode=? AND location=?", args)) {
