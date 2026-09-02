@@ -82,6 +82,13 @@ if method not in s:
     if anchor not in s: raise SystemExit('editRow anchor not found')
     s=s.replace(anchor,method+anchor,1)
 
+# Export files should use .txt while keeping the existing comma-separated content format.
+s=s.replace('safeFileName(sessionName)+".csv"','safeFileName(sessionName)+".txt"')
+s=s.replace('if(!requested.toLowerCase(Locale.US).endsWith(".csv"))requested+=".csv";','if(!requested.toLowerCase(Locale.US).endsWith(".txt"))requested+=".txt";')
+s=s.replace('i.setType("text/csv")','i.setType("text/plain")')
+s=s.replace('values.put(MediaStore.MediaColumns.MIME_TYPE,"text/csv")','values.put(MediaStore.MediaColumns.MIME_TYPE,"text/plain")')
+s=s.replace('toast("CSV exported")','toast("TXT exported")')
+
 p.write_text(s)
 
 b=Path('app/build.gradle')
