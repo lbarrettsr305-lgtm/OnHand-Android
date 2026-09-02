@@ -22,10 +22,13 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -69,6 +72,12 @@ public class MainActivity extends Activity {
     private ArrayAdapter<String> listAdapter;
     private final ArrayList<InventoryDb.Row> visibleRows = new ArrayList<>();
 
+    private final ArrayList<String> exportColumns = new ArrayList<>();
+    private final Map<String,Boolean> exportEnabled = new LinkedHashMap<>();
+    private String pendingExportLocation = null;
+    private boolean pendingExportPositiveOnly = true;
+    private boolean pendingExportModifiedOnly = false;
+
     private static final class ImportRow {
         String barcode;
         String description;
@@ -79,6 +88,7 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         installCrashRecorder();
+        initExportFormat();
         try {
             initializeApp(false);
             showPreviousCrashIfAny();
@@ -97,6 +107,17 @@ public class MainActivity extends Activity {
                 showFatalStartup(first, second);
             }
         }
+    }
+
+    private void initExportFormat() {
+        if (!exportColumns.isEmpty()) return;
+        String[] cols={"Barcode","Description","Price","Quantity","Location"};
+        for(String c:cols) exportColumns.add(c);
+        exportEnabled.put("Barcode",true);
+        exportEnabled.put("Description",true);
+        exportEnabled.put("Price",false);
+        exportEnabled.put("Quantity",true);
+        exportEnabled.put("Location",true);
     }
 
     private void initializeApp(boolean recovered) {
@@ -222,8 +243,8 @@ public class MainActivity extends Activity {
                 View view=super.getView(position,convertView,parent);
                 if(view instanceof TextView){
                     TextView text=(TextView)view;
-                    text.setTextSize(15);
-                    text.setPadding(dp(10),dp(6),dp(10),dp(6));
+                    text.setTextSize(14);
+                    text.setPadding(dp(9),dp(4),dp(9),dp(4));
                     text.setMinHeight(0);
                 }
                 return view;
@@ -337,17 +358,23 @@ public class MainActivity extends Activity {
 
     private void refreshLocations() { List<String> locs=db.locations(); ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,locs); location.setAdapter(a); }
 
-    private String formatRow(InventoryDb.Row r) {
-        String desc=r.description==null?"":r.description.trim();
+    private String[] splitDescriptionPrice(String value) {
+        String desc=value==null?"":value.trim();
         String price="";
         Matcher m=TRAILING_PRICE.matcher(desc);
         if(m.matches()) { desc=m.group(1).trim(); price=m.group(2).trim(); }
+        return new String[]{desc,price};
+    }
+
+    private String formatRow(InventoryDb.Row r) {
+        String[] parts=splitDescriptionPrice(r.description);
+        String desc=parts[0], price=parts[1];
         String top=desc.isEmpty()?r.barcode:desc;
-        StringBuilder middle=new StringBuilder("Qty ").append(r.quantity);
-        if(!price.isEmpty()) middle.append("   ").append(price);
-        if(r.location!=null && !r.location.trim().isEmpty()) middle.append("   ").append(r.location.trim());
-        if(desc.isEmpty()) return top+"\n"+middle;
-        return top+"\n"+middle+"\n"+r.barcode;
+        StringBuilder second=new StringBuilder("Qty ").append(r.quantity);
+        if(!price.isEmpty()) second.append("      ").append(price);
+        if(r.location!=null && !r.location.trim().isEmpty()) second.append("      ").append(r.location.trim());
+        if(desc.isEmpty()) return top+"\n"+second;
+        return top+"\n"+second+"\n"+r.barcode;
     }
 
     private void refreshList() {
@@ -439,9 +466,94 @@ public class MainActivity extends Activity {
 
     private void editRow(int pos) { if(pos<0||pos>=visibleRows.size())return; InventoryDb.Row r=visibleRows.get(pos); LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(24),0,dp(24),0); TextView info=new TextView(this); info.setText(r.barcode+"\n"+r.description+"\n"+r.location); box.addView(info); EditText q=new EditText(this);q.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED);q.setText(String.valueOf(r.quantity));box.addView(q); new AlertDialog.Builder(this).setTitle("Edit count").setView(box).setPositiveButton("Save",(d,w)->{try{db.setQuantity(r.id,Integer.parseInt(q.getText().toString()));}catch(Exception ignored){}refreshList();}).setNeutralButton("Delete",(d,w)->{db.deleteItem(r.id);refreshList();}).setNegativeButton("Cancel",null).show(); }
 
-    private void exportCsv() { Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/csv");i.putExtra(Intent.EXTRA_TITLE,safeFileName(sessionName)+".csv");startActivityForResult(i,REQ_EXPORT); }
-    private void importCsv() { Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/*");startActivityForResult(i,REQ_IMPORT); }
     private String safeFileName(String s){return s.replaceAll("[^A-Za-z0-9._-]+","_");}
+
+    private void exportCsv() {
+        LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(20),dp(6),dp(20),0);
+        box.addView(label("Filename"));
+        EditText fileName=new EditText(this); fileName.setSingleLine(true); fileName.setText(safeFileName(sessionName)+".csv"); box.addView(fileName);
+
+        box.addView(label("Location"));
+        Spinner exportLocation=new Spinner(this);
+        ArrayList<String> locations=new ArrayList<>(); locations.add("All Locations"); locations.addAll(db.locations());
+        exportLocation.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,locations)); box.addView(exportLocation);
+
+        box.addView(label("Quantities"));
+        RadioGroup quantityGroup=new RadioGroup(this); quantityGroup.setOrientation(LinearLayout.HORIZONTAL);
+        RadioButton allQty=new RadioButton(this); allQty.setText("All Quantities"); allQty.setId(View.generateViewId());
+        RadioButton positiveQty=new RadioButton(this); positiveQty.setText(">0 Only"); positiveQty.setId(View.generateViewId()); positiveQty.setChecked(true);
+        quantityGroup.addView(allQty); quantityGroup.addView(positiveQty); box.addView(quantityGroup);
+
+        CheckBox modifiedOnly=new CheckBox(this); modifiedOnly.setText("Modified Items Only"); box.addView(modifiedOnly);
+
+        Button configure=button("Configure Output Format"); configure.setOnClickListener(v->showConfigureOutputFormat()); box.addView(configure);
+        Button zero=button("Zero / Reset Quantities"); box.addView(zero);
+
+        AlertDialog dialog=new AlertDialog.Builder(this)
+                .setTitle("File Output")
+                .setView(box)
+                .setPositiveButton("Save",null)
+                .setNegativeButton("Cancel",null)
+                .create();
+        dialog.setOnShowListener(x->{
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+                String selected=exportLocation.getSelectedItem()==null?"All Locations":exportLocation.getSelectedItem().toString();
+                pendingExportLocation="All Locations".equals(selected)?null:selected;
+                pendingExportPositiveOnly=positiveQty.isChecked();
+                pendingExportModifiedOnly=modifiedOnly.isChecked();
+                String requested=fileName.getText().toString().trim();
+                if(requested.isEmpty()) requested=safeFileName(sessionName)+".csv";
+                if(!requested.toLowerCase(Locale.US).endsWith(".csv")) requested += ".csv";
+                Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT); i.addCategory(Intent.CATEGORY_OPENABLE); i.setType("text/csv"); i.putExtra(Intent.EXTRA_TITLE,requested); startActivityForResult(i,REQ_EXPORT);
+                dialog.dismiss();
+            });
+            zero.setOnClickListener(v->{
+                String selected=exportLocation.getSelectedItem()==null?"All Locations":exportLocation.getSelectedItem().toString();
+                String loc="All Locations".equals(selected)?null:selected;
+                confirmZeroQuantities(loc);
+            });
+        });
+        dialog.show();
+    }
+
+    private void showConfigureOutputFormat() {
+        LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(14),dp(6),dp(14),0);
+        TextView help=new TextView(this); help.setText("Tap a field to include/exclude it. Select it, then use Up or Down to change column order."); help.setTextSize(13); box.addView(help);
+        ListView fields=new ListView(this); fields.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+        ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_list_item_single_choice,new ArrayList<>());
+        fields.setAdapter(adapter); box.addView(fields,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(260)));
+        final int[] selected={0};
+        Runnable refresh=()->{
+            ArrayList<String> labels=new ArrayList<>();
+            for(String c:exportColumns) labels.add(Boolean.TRUE.equals(exportEnabled.get(c))?"✓  "+c:"○  "+c);
+            adapter.clear(); adapter.addAll(labels); adapter.notifyDataSetChanged();
+            if(selected[0]>=0 && selected[0]<exportColumns.size()) fields.setItemChecked(selected[0],true);
+        };
+        fields.setOnItemClickListener((p,v,pos,id)->{
+            selected[0]=pos; String c=exportColumns.get(pos); exportEnabled.put(c,!Boolean.TRUE.equals(exportEnabled.get(c))); refresh.run();
+        });
+        LinearLayout move=new LinearLayout(this); move.setOrientation(LinearLayout.HORIZONTAL);
+        Button up=button("Move Up"); Button down=button("Move Down");
+        move.addView(up,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); move.addView(down,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1)); box.addView(move);
+        up.setOnClickListener(v->{ int p=selected[0]; if(p>0){ String c=exportColumns.remove(p); exportColumns.add(p-1,c); selected[0]=p-1; refresh.run(); }});
+        down.setOnClickListener(v->{ int p=selected[0]; if(p>=0 && p<exportColumns.size()-1){ String c=exportColumns.remove(p); exportColumns.add(p+1,c); selected[0]=p+1; refresh.run(); }});
+        refresh.run();
+        new AlertDialog.Builder(this).setTitle("Configure Output Format").setView(box).setPositiveButton("Done",null).show();
+    }
+
+    private void confirmZeroQuantities(String loc) {
+        String scope=loc==null?"ALL locations":"location '"+loc+"'";
+        new AlertDialog.Builder(this)
+                .setTitle("Zero quantities?")
+                .setMessage("Set every quantity in "+scope+" for this inventory to 0? This changes the inventory and cannot be undone automatically.")
+                .setPositiveButton("Zero Quantities",(d,w)->{
+                    int changed=db.zeroQuantities(sessionId,loc); refreshList(); toast("Zeroed "+changed+" item lines");
+                })
+                .setNegativeButton("Cancel",null)
+                .show();
+    }
+
+    private void importCsv() { Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/*");startActivityForResult(i,REQ_IMPORT); }
 
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);
@@ -449,7 +561,39 @@ public class MainActivity extends Activity {
         if(requestCode==REQ_EXPORT){writeExport(data.getData());} else if(requestCode==REQ_IMPORT){readImport(data.getData());}
     }
 
-    private void writeExport(Uri uri){ if(uri==null)return; try(OutputStream os=getContentResolver().openOutputStream(uri)){ if(os==null)throw new Exception("No output stream"); os.write(CsvUtils.exportRows(db.items(sessionId)).getBytes(StandardCharsets.UTF_8));toast("CSV exported"); }catch(Exception e){showError("Export failed",e);} }
+    private String buildExportCsv() {
+        ArrayList<String> active=new ArrayList<>();
+        for(String c:exportColumns) if(Boolean.TRUE.equals(exportEnabled.get(c))) active.add(c);
+        if(active.isEmpty()) active.add("Barcode");
+        StringBuilder out=new StringBuilder();
+        for(int i=0;i<active.size();i++){ if(i>0) out.append(','); out.append(CsvUtils.escape(active.get(i))); } out.append("\r\n");
+        for(InventoryDb.Row r:db.items(sessionId)) {
+            if(pendingExportLocation!=null && !pendingExportLocation.equalsIgnoreCase(r.location==null?"":r.location)) continue;
+            if(pendingExportPositiveOnly && r.quantity<=0) continue;
+            if(pendingExportModifiedOnly && !r.modified) continue;
+            String[] parts=splitDescriptionPrice(r.description); String cleanDescription=parts[0], price=parts[1];
+            boolean priceSeparate=active.contains("Price");
+            for(int i=0;i<active.size();i++) {
+                if(i>0) out.append(','); String c=active.get(i); String value="";
+                if("Barcode".equals(c)) value=r.barcode;
+                else if("Description".equals(c)) value=priceSeparate?cleanDescription:(r.description==null?"":r.description);
+                else if("Price".equals(c)) value=price;
+                else if("Quantity".equals(c)) value=String.valueOf(r.quantity);
+                else if("Location".equals(c)) value=r.location;
+                out.append(CsvUtils.escape(value));
+            }
+            out.append("\r\n");
+        }
+        return out.toString();
+    }
+
+    private void writeExport(Uri uri){
+        if(uri==null)return;
+        try(OutputStream os=getContentResolver().openOutputStream(uri)){
+            if(os==null)throw new Exception("No output stream");
+            os.write(buildExportCsv().getBytes(StandardCharsets.UTF_8)); toast("CSV exported");
+        }catch(Exception e){showError("Export failed",e);}
+    }
 
     private String inventoryNameFromUri(Uri uri) {
         String name=null;
