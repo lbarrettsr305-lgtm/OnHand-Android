@@ -1,4 +1,4 @@
-name: Build iCE Onhand Inventory 3.0.25 Signed
+name: Build iCE Onhand Inventory 3.0.26 Signed
 
 on:
   workflow_dispatch:
@@ -7,6 +7,7 @@ on:
     paths:
       - 'app/**'
       - 'scripts/patch_3025.py'
+      - 'scripts/patch_3026.py'
       - '.github/workflows/build-3021.yml'
 
 jobs:
@@ -28,8 +29,10 @@ jobs:
           gradle-version: '8.13'
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
-      - name: Apply 3.0.25 corrections
+      - name: Apply 3.0.25 layout corrections
         run: python3 scripts/patch_3025.py
+      - name: Apply 3.0.26 scanner and touch corrections
+        run: python3 scripts/patch_3026.py
       - name: Restore permanent signing keystore
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
@@ -67,14 +70,14 @@ jobs:
           ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
         run: gradle :app:assembleRelease --stacktrace
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.25.apk"
+        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.26.apk"
       - name: Verify APK signature
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           test -x "$APKSIGNER"
-          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.25.apk"
+          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.26.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.25-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.25.apk
+          name: iCE-Onhand-Inventory-3.0.26-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.26.apk
           if-no-files-found: error
