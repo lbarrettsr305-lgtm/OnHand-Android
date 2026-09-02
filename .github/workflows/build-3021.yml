@@ -1,4 +1,4 @@
-name: Build iCE Onhand Inventory 3.0.29 Signed
+name: Build iCE Onhand Inventory 3.0.30 Signed
 
 on:
   workflow_dispatch:
@@ -11,6 +11,7 @@ on:
       - 'scripts/patch_3027.py'
       - 'scripts/patch_3028.py'
       - 'scripts/patch_3029.py'
+      - 'scripts/patch_3030.py'
       - '.github/workflows/build-3021.yml'
 
 jobs:
@@ -42,6 +43,8 @@ jobs:
         run: python3 scripts/patch_3028.py
       - name: Apply 3.0.29 lookup and version corrections
         run: python3 scripts/patch_3029.py
+      - name: Apply 3.0.30 quantity dialog emphasis
+        run: python3 scripts/patch_3030.py
       - name: Restore permanent signing keystore
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
@@ -71,13 +74,13 @@ jobs:
           ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
         run: gradle :app:assembleRelease --stacktrace
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.29.apk"
+        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.30.apk"
       - name: Verify APK signature
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.29.apk"
+          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.30.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.29-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.29.apk
+          name: iCE-Onhand-Inventory-3.0.30-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.30.apk
           if-no-files-found: error
