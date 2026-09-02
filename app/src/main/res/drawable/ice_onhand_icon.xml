@@ -4,10 +4,25 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
     <path android:fillColor="#000000" android:pathData="M0,0h108v108h-108z"/>
-    <path android:fillColor="#FFD100" android:pathData="M54,10c24.3,0 44,19.7 44,44S78.3,98 54,98 10,78.3 10,54 29.7,10 54,10zM54,22c-17.7,0 -32,14.3 -32,32s14.3,32 32,32 32,-14.3 32,-32 -14.3,-32 -32,-32z"/>
-    <path android:fillColor="#009B3A" android:pathData="M19,83L83,19h14L33,83z"/>
-    <path android:fillColor="#009B3A" android:pathData="M25,19L89,83H75L11,19z"/>
-    <path android:fillColor="#000000" android:pathData="M39,32c4,-6 10,-8 15,-6 4,2 5,6 3,10 -2,4 -7,7 -11,8l-7,-12zM35,47c6,-5 14,-6 20,-2l8,6c3,2 7,2 10,0l7,-5 5,7 -8,7c-7,6 -16,6 -23,1l-4,-3 -11,18 -9,-6z"/>
-    <path android:strokeColor="#FFFFFF" android:strokeWidth="2" android:fillColor="@android:color/transparent" android:pathData="M54,22c-17.7,0 -32,14.3 -32,32s14.3,32 32,32"/>
+
+    <!-- layered C mark from the approved iCE Inventory logo -->
+    <path android:fillColor="#009B3A" android:pathData="M88,24C79,12 64,7 49,10C30,14 17,31 17,52C17,75 34,94 56,97C70,99 83,94 92,85L83,73C76,80 67,84 57,83C43,82 32,70 31,55C30,39 40,25 55,23C65,21 75,25 81,33z"/>
+    <path android:fillColor="#FFD100" android:pathData="M91,31C83,20 70,15 57,16C39,18 26,33 26,52C26,71 40,87 58,89C69,90 80,86 88,78L83,72C76,78 68,81 59,80C45,79 35,67 35,53C35,39 45,28 58,26C68,25 77,29 83,37z"/>
+    <path android:fillColor="#171717" android:pathData="M88,38C82,30 72,26 62,27C49,29 40,39 40,52C40,65 49,76 62,78C70,79 78,76 84,70L78,62C74,66 69,68 64,68C56,67 50,60 50,52C50,44 56,37 64,36C71,35 77,38 81,43z"/>
+
+    <!-- runner / scanner figure -->
+    <path android:fillColor="#FFD100" android:pathData="M38,24c4,-4 10,-4 14,-1c3,3 3,8 0,11c-4,4 -10,4 -14,1c-3,-3 -3,-8 0,-11z"/>
+    <path android:fillColor="#050505" android:pathData="M26,42c5,-7 12,-11 19,-9c7,2 10,8 14,14c3,5 7,8 12,8c4,0 8,-2 12,-5l5,7c-6,6 -13,9 -20,9c-7,0 -13,-3 -18,-8l-5,-5l-8,12l12,9l-6,8l-18,-13c-4,-3 -5,-8 -2,-12z"/>
+    <path android:fillColor="#050505" android:pathData="M24,47L9,61l6,7l18,-14z"/>
+
+    <!-- handheld scanner and beam -->
+    <path android:fillColor="#050505" android:pathData="M77,49c4,-3 9,-3 12,0l5,4l-4,6l-6,-3c-2,-1 -4,-1 -6,0l-6,3l-4,-6z"/>
+    <path android:fillColor="#009B3A" android:pathData="M91,52L105,47v18L91,58z"/>
+    <path android:fillColor="#FFD100" android:pathData="M92,54L105,51v10L92,57z"/>
+    <path android:fillColor="#000000" android:pathData="M97,50h1v12h-1zM100,49h1v14h-1zM103,48h1v16h-1z"/>
+
+    <!-- small iCE wordmark hint -->
+    <path android:fillColor="#FFD100" android:pathData="M18,88h6v8h-6zM29,88h14v4h-8v1h8v3h-14zM48,88h15v4h-9v1h9v3h-15z"/>
 </vector>
