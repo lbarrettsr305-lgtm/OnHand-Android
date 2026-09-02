@@ -6,7 +6,7 @@
     <application
         android:allowBackup="true"
         android:label="iCE Onhand Inventory"
-        android:icon="@drawable/ice_inventory_logo"
+        android:icon="@drawable/ice_onhand_icon"
         android:theme="@style/OnHandTheme"
         android:usesCleartextTraffic="false">
         <activity
