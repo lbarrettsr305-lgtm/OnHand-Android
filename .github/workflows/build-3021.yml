@@ -1,4 +1,4 @@
-name: Build iCE Onhand Inventory 3.0.22 Signed
+name: Build iCE Onhand Inventory 3.0.23 Signed
 
 on:
   workflow_dispatch:
@@ -64,14 +64,14 @@ jobs:
           ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
         run: gradle :app:assembleRelease --stacktrace
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.22.apk"
+        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.23.apk"
       - name: Verify APK signature
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           test -x "$APKSIGNER"
-          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.22.apk"
+          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.23.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.22-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.22.apk
+          name: iCE-Onhand-Inventory-3.0.23-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.23.apk
           if-no-files-found: error
