@@ -151,6 +151,10 @@ public final class InventoryDb extends SQLiteOpenHelper {
         return unique;
     }
 
+    public String resolvedBarcode(long sessionId, String barcode) {
+        return resolveBarcode(sessionId, barcode);
+    }
+
     public boolean barcodeExists(long sessionId, String barcode) {
         return resolveBarcode(sessionId, barcode) != null;
     }
