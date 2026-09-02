@@ -1,4 +1,4 @@
-name: Build iCE Onhand Inventory 3.0.23 Signed
+name: Build iCE Onhand Inventory 3.0.24 Signed
 
 on:
   workflow_dispatch:
@@ -27,6 +27,20 @@ jobs:
           gradle-version: '8.13'
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
+      - name: Apply 3.0.24 compact list corrections
+        run: |
+          python3 - <<'PY'
+          p='app/src/main/java/com/iceinventory/onhand/MainActivity.java'
+          s=open(p,encoding='utf-8').read()
+          s=s.replace('String[] parts=splitDescriptionPrice(r.description); String descText=parts[0].isEmpty()?"(No description)":parts[0];','String[] parts=splitDescriptionPrice(r.description); String descText=parts[0];')
+          s=s.replace('row.addView(desc);','if(!descText.isEmpty()) row.addView(desc);',1)
+          s=s.replace('row.setPadding(dp(10),dp(5),dp(10),dp(5));','row.setPadding(dp(8),dp(3),dp(8),dp(3));')
+          s=s.replace('desc.setTextSize(14);','desc.setTextSize(12);')
+          s=s.replace('detail.setTextSize(12);','detail.setTextSize(11);')
+          s=s.replace('code.setTextSize(11);','code.setTextSize(10);')
+          s=s.replace('io.setTranslationY(dp(-36));','io.setTranslationY(dp(-52));')
+          open(p,'w',encoding='utf-8').write(s)
+          PY
       - name: Restore permanent signing keystore
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
@@ -64,14 +78,14 @@ jobs:
           ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
         run: gradle :app:assembleRelease --stacktrace
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.23.apk"
+        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.24.apk"
       - name: Verify APK signature
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           test -x "$APKSIGNER"
-          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.23.apk"
+          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.24.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.23-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.23.apk
+          name: iCE-Onhand-Inventory-3.0.24-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.24.apk
           if-no-files-found: error
