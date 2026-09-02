@@ -53,12 +53,18 @@ jobs:
           print(f'Keystore restored ({len(data)} bytes)')
           PY
           test -s "$RUNNER_TEMP/onhand-release.jks"
+      - name: Verify signing key can be unlocked
+        env:
+          ONHAND_STORE_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
+          ONHAND_KEY_ALIAS: ${{ secrets.ONHAND_KEY_ALIAS }}
+        run: |
+          keytool -list -keystore "$RUNNER_TEMP/onhand-release.jks" -storepass "$ONHAND_STORE_PASSWORD" -alias "$ONHAND_KEY_ALIAS" >/dev/null
       - name: Build signed release APK
         env:
           ONHAND_KEYSTORE_PATH: ${{ runner.temp }}/onhand-release.jks
           ONHAND_STORE_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
           ONHAND_KEY_ALIAS: ${{ secrets.ONHAND_KEY_ALIAS }}
-          ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_KEY_PASSWORD }}
+          ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
         run: gradle :app:assembleRelease --stacktrace
       - name: Rename APK
         run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.20.apk"
