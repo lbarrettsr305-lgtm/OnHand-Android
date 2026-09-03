@@ -1,4 +1,4 @@
-name: Build iCE Onhand Inventory 3.0.38 Signed
+name: Build iCE Onhand Inventory 3.0.40 Signed
 
 on:
   workflow_dispatch:
@@ -20,6 +20,7 @@ on:
       - 'scripts/patch_3036.py'
       - 'scripts/patch_3037.py'
       - 'scripts/patch_3038.py'
+      - 'scripts/patch_3040.py'
       - '.github/workflows/build-3021.yml'
 
 jobs:
@@ -67,8 +68,10 @@ jobs:
         run: python3 scripts/patch_3036.py
       - name: Apply 3.0.37 fixed-header quantity dialog
         run: python3 scripts/patch_3037.py
-      - name: Apply 3.0.38 active-row keyboard visibility fix
+      - name: Apply 3.0.38/3.0.39 active-row and scanner keyboard fixes
         run: python3 scripts/patch_3038.py
+      - name: Apply 3.0.40 scanner and tab-delimited TXT fixes
+        run: python3 scripts/patch_3040.py
       - name: Restore permanent signing keystore
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
@@ -99,16 +102,16 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
       - name: Prepare easy-install APK names
         run: |
-          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.38.apk"
+          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.40.apk"
           cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Update.apk"
       - name: Verify APK signature
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.38.apk"
+          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.40.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.38-signed
+          name: iCE-Onhand-Inventory-3.0.40-signed
           path: |
-            app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.38.apk
+            app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.40.apk
             app/build/outputs/apk/release/iCE-Onhand-Update.apk
           if-no-files-found: error
