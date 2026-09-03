@@ -1,4 +1,4 @@
-name: Build iCE Onhand Inventory 3.0.20 Signed
+name: Build iCE Onhand Inventory 3.0.21 Signed
 
 on:
   workflow_dispatch:
@@ -27,6 +27,30 @@ jobs:
           gradle-version: '8.13'
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
+      - name: Apply 3.0.21 keyboard fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
+          s = p.read_text()
+          s = s.replace('import android.content.SharedPreferences;\n', 'import android.content.SharedPreferences;\nimport android.content.Context;\n', 1)
+          s = s.replace('import android.view.ViewGroup;\n', 'import android.view.ViewGroup;\nimport android.view.inputmethod.InputMethodManager;\n', 1)
+          old = 'barcode.setText(""); description.setText(""); qty.setText(""); barcode.requestFocus(); refreshList();'
+          new = 'barcode.setText(""); description.setText(""); qty.setText(""); barcode.requestFocus(); hideKeyboardAfterAdd(); refreshList();'
+          if old not in s:
+              raise SystemExit('Add Count focus marker not found')
+          s = s.replace(old, new, 1)
+          marker = '    private void scanBarcode() {'
+          helper = '    private void hideKeyboardAfterAdd() {\n        barcode.postDelayed(() -> {\n            InputMethodManager imm=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);\n            if(imm!=null) imm.hideSoftInputFromWindow(barcode.getWindowToken(),0);\n        },100);\n    }\n\n'
+          if marker not in s:
+              raise SystemExit('scanBarcode marker not found')
+          s = s.replace(marker, helper + marker, 1)
+          p.write_text(s)
+
+          g = Path('app/build.gradle')
+          t = g.read_text().replace('versionCode 30020', 'versionCode 30021').replace("versionName '3.0.20'", "versionName '3.0.21'")
+          g.write_text(t)
+          PY
       - name: Restore permanent signing keystore
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
@@ -67,14 +91,14 @@ jobs:
           ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
         run: gradle :app:assembleRelease --stacktrace
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.20.apk"
+        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.21.apk"
       - name: Verify APK signature
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           test -x "$APKSIGNER"
-          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.20.apk"
+          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.21.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.20-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.20.apk
+          name: iCE-Onhand-Inventory-3.0.21-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.21.apk
           if-no-files-found: error
