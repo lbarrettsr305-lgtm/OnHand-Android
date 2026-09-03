@@ -28,6 +28,16 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
+      - name: Apply Android list compatibility patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
+          s = p.read_text()
+          s = s.replace('list.setDividerColor(gold());', 'list.setDivider(new android.graphics.drawable.ColorDrawable(gold()));')
+          p.write_text(s)
+          PY
+
       - name: Restore permanent signing keystore
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
