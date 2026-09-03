@@ -1,4 +1,4 @@
-name: Build iCE Onhand Inventory 3.0.22 Signed
+name: Build iCE Onhand Inventory 3.0.42 Signed
 
 on:
   workflow_dispatch:
@@ -27,11 +27,11 @@ jobs:
           gradle-version: '8.13'
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
-      - name: Apply 3.0.22 keyboard behavior and logo
+
+      - name: Apply 3.0.42 keyboard fix and Jamaican-style icon
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import base64
 
           p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
           s = p.read_text()
@@ -45,8 +45,6 @@ jobs:
 
           old_barcode = 'barcode=new EditText(this); barcode.setSingleLine(true); barcode.setTextSize(20); barcode.setHint("Scan or type barcode"); barcode.setInputType(InputType.TYPE_CLASS_TEXT);'
           new_barcode = '''barcode=new EditText(this); barcode.setSingleLine(true); barcode.setTextSize(20); barcode.setHint("Scan or type barcode"); barcode.setInputType(InputType.TYPE_CLASS_TEXT);
-        // Keep the barcode field ready for a hardware scanner without automatically
-        // opening the full Android keyboard. A direct tap still enables manual typing.
         barcode.setShowSoftInputOnFocus(false);
         barcode.setOnTouchListener((v,event)->{
             if(event.getAction()==MotionEvent.ACTION_DOWN){
@@ -66,9 +64,7 @@ jobs:
           s = s.replace(old_barcode, new_barcode, 1)
 
           old_add = 'barcode.setText(""); description.setText(""); qty.setText(""); barcode.requestFocus(); refreshList();'
-          new_add = '''barcode.setText("");
-        description.setText("");
-        qty.setText("");
+          new_add = '''barcode.setText(""); description.setText(""); qty.setText("");
         barcode.setShowSoftInputOnFocus(false);
         barcode.requestFocus();
         hideKeyboardAfterAdd();
@@ -95,17 +91,41 @@ jobs:
           p.write_text(s)
 
           g = Path('app/build.gradle')
-          t = g.read_text().replace('versionCode 30020', 'versionCode 30022').replace("versionName '3.0.20'", "versionName '3.0.22'")
+          t = g.read_text()
+          t = t.replace('versionCode 30020', 'versionCode 30042')
+          t = t.replace("versionName '3.0.20'", "versionName '3.0.42'")
           g.write_text(t)
-
-          # Replace the temporary Jamaican-style icon with the iCE Inventory
-          # corporate blue/gray/black mark used in the company's inventory branding.
-          icon_b64 = '''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'''
-          drawable = Path('app/src/main/res/drawable')
-          old_xml = drawable / 'ice_onhand_icon.xml'
-          if old_xml.exists(): old_xml.unlink()
-          (drawable / 'ice_onhand_icon.jpg').write_bytes(base64.b64decode(icon_b64))
           PY
+
+          cat > app/src/main/res/drawable/ice_onhand_icon.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="#050505"
+                  android:pathData="M0,0h108v108h-108z" />
+              <path
+                  android:fillColor="#FFD100"
+                  android:pathData="M54,10a44,44 0,1 0,0,88a44,44 0,1 0,0,-88z" />
+              <path
+                  android:fillColor="#050505"
+                  android:pathData="M54,20a34,34 0,1 0,0,68a34,34 0,1 0,0,-68z" />
+              <path
+                  android:fillColor="#009B3A"
+                  android:pathData="M22,57 L34,46 L47,60 L76,29 L87,40 L47,82 Z" />
+              <path
+                  android:fillColor="#FFD100"
+                  android:pathData="M31,30h5v17h-5z M40,27h4v20h-4z M48,31h6v16h-6z M58,27h4v20h-4z M66,30h6v17h-6z" />
+              <path
+                  android:fillColor="#FFFFFF"
+                  android:fillAlpha="0.20"
+                  android:pathData="M54,22a32,32 0,0 0,-25,12c11,-7 24,-9 37,-5c7,2 13,5 18,10c-5,-10 -16,-17 -30,-17z" />
+          </vector>
+          XML
+
       - name: Restore permanent signing keystore
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
@@ -120,10 +140,7 @@ jobs:
           s = s.strip().strip('"').strip("'").strip('`')
           s = re.sub(r'\s+', '', s)
           s += '=' * ((4 - len(s) % 4) % 4)
-          try:
-              data = base64.b64decode(s, validate=False)
-          except Exception as e:
-              raise SystemExit(f'Unable to decode keystore secret: {e}')
+          data = base64.b64decode(s, validate=False)
           if len(data) < 100:
               raise SystemExit('Decoded keystore is unexpectedly small')
           path = os.path.join(os.environ['RUNNER_TEMP'], 'onhand-release.jks')
@@ -132,12 +149,14 @@ jobs:
           print(f'Keystore restored ({len(data)} bytes)')
           PY
           test -s "$RUNNER_TEMP/onhand-release.jks"
+
       - name: Verify signing key can be unlocked
         env:
           ONHAND_STORE_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
           ONHAND_KEY_ALIAS: ${{ secrets.ONHAND_KEY_ALIAS }}
         run: |
           keytool -list -keystore "$RUNNER_TEMP/onhand-release.jks" -storepass "$ONHAND_STORE_PASSWORD" -alias "$ONHAND_KEY_ALIAS" >/dev/null
+
       - name: Build signed release APK
         env:
           ONHAND_KEYSTORE_PATH: ${{ runner.temp }}/onhand-release.jks
@@ -145,15 +164,18 @@ jobs:
           ONHAND_KEY_ALIAS: ${{ secrets.ONHAND_KEY_ALIAS }}
           ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
         run: gradle :app:assembleRelease --stacktrace
+
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.22.apk"
+        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk"
+
       - name: Verify APK signature
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           test -x "$APKSIGNER"
-          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.22.apk"
+          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.22-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.22.apk
+          name: iCE-Onhand-Inventory-3.0.42-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk
           if-no-files-found: error
