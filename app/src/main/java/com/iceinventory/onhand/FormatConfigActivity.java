@@ -33,11 +33,16 @@ public class FormatConfigActivity extends Activity {
     private final Map<String,Boolean> enabled=new HashMap<>();
     private LinearLayout rows;
     private TextView preview;
+    private Button moveUp;
+    private Button moveDown;
     private String mode;
+    private int selectedIndex=0;
 
     private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
     private int gold(){return Color.rgb(255,210,0);}
     private int green(){return Color.rgb(0,175,55);}
+    private int dark(){return Color.rgb(8,18,20);}
+    private int rowDark(){return Color.rgb(18,42,35);}
 
     @Override public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
@@ -91,29 +96,40 @@ public class FormatConfigActivity extends Activity {
     }
 
     private void buildUi(){
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(Color.rgb(8,18,20));
+        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(dark());
 
         LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);top.setPadding(dp(8),dp(8),dp(8),dp(8));top.setBackgroundColor(Color.BLACK);
         Button back=button("‹");back.setTextSize(28);back.setTextColor(Color.WHITE);back.setBackgroundColor(Color.TRANSPARENT);back.setOnClickListener(v->finish());
         top.addView(back,new LinearLayout.LayoutParams(dp(58),dp(50)));
-        top.addView(text(MODE_EXPORT.equals(mode)?"Configure Export Format":"Configure Import Format",21,Color.WHITE,true),new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
+        top.addView(text(MODE_EXPORT.equals(mode)?"Configure Output Format":"Configure Import Format",21,Color.WHITE,true),new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
         root.addView(top);
 
         ScrollView scroll=new ScrollView(this);
         LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(12),dp(10),dp(12),dp(14));
         body.addView(text("TXT file • TAB delimited",18,gold(),true));
-        TextView help=text("Choose which fields are used and move them into the exact column order required. Barcode is required and cannot be removed.",14,Color.WHITE,false);
-        help.setPadding(0,dp(4),0,dp(10));body.addView(help);
+
+        String helpText=MODE_EXPORT.equals(mode)
+                ?"Choose the fields to export. Tap a row to select it, use the check box to include/exclude it, then Move Up or Move Down to set the column order."
+                :"Set the incoming file column order. Tap a row to select it, use the check box to include/exclude it, then Move Up or Move Down to match the file. Barcode must remain included.";
+        TextView help=text(helpText,14,Color.WHITE,false);help.setPadding(0,dp(5),0,dp(10));body.addView(help);
 
         rows=new LinearLayout(this);rows.setOrientation(LinearLayout.VERTICAL);body.addView(rows);
 
-        preview=text("",14,Color.WHITE,true);preview.setPadding(dp(8),dp(10),dp(8),dp(10));preview.setBackgroundColor(Color.rgb(22,50,36));body.addView(preview);
+        LinearLayout moves=new LinearLayout(this);moves.setOrientation(LinearLayout.HORIZONTAL);moves.setPadding(0,dp(8),0,0);
+        moveUp=button("↑ Move Up");moveDown=button("↓ Move Down");
+        moveUp.setOnClickListener(v->moveSelected(-1));moveDown.setOnClickListener(v->moveSelected(1));
+        moves.addView(moveUp,new LinearLayout.LayoutParams(0,dp(50),1));
+        LinearLayout.LayoutParams mdp=new LinearLayout.LayoutParams(0,dp(50),1);mdp.setMargins(dp(6),0,0,0);moves.addView(moveDown,mdp);
+        body.addView(moves);
 
-        Button save=button("SAVE FORMAT");save.setTextColor(Color.WHITE);save.setTypeface(Typeface.DEFAULT,Typeface.BOLD);save.setBackgroundColor(green());save.setOnClickListener(v->saveAndFinish());
+        preview=text("",14,Color.WHITE,true);preview.setPadding(dp(8),dp(10),dp(8),dp(10));preview.setBackgroundColor(Color.rgb(22,50,36));
+        LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);pp.setMargins(0,dp(8),0,0);body.addView(preview,pp);
+
+        Button save=button(MODE_EXPORT.equals(mode)?"CONTINUE TO SAVE":"CONTINUE TO FILE");save.setTextColor(Color.WHITE);save.setTypeface(Typeface.DEFAULT,Typeface.BOLD);save.setBackgroundColor(green());save.setOnClickListener(v->saveAndFinish());
         LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(54));sp.setMargins(0,dp(12),0,0);body.addView(save,sp);
 
-        Button defaults=button("Reset to Barcode → Description → Price → Quantity → Location");defaults.setOnClickListener(v->resetDefaults());
-        LinearLayout.LayoutParams dpv=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(52));dpv.setMargins(0,dp(6),0,0);body.addView(defaults,dpv);
+        Button defaults=button("Reset standard order");defaults.setOnClickListener(v->resetDefaults());
+        LinearLayout.LayoutParams dpv=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(50));dpv.setMargins(0,dp(6),0,0);body.addView(defaults,dpv);
 
         scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));setContentView(root);
         renderRows();
@@ -121,39 +137,57 @@ public class FormatConfigActivity extends Activity {
 
     private void renderRows(){
         rows.removeAllViews();
+        if(selectedIndex<0)selectedIndex=0;
+        if(selectedIndex>=order.size())selectedIndex=order.size()-1;
+
         for(int i=0;i<order.size();i++){
-            final String field=order.get(i);
             final int index=i;
-            LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(4),dp(3),dp(4),dp(3));
-            CheckBox box=new CheckBox(this);box.setText(label(field));box.setTextColor(Color.WHITE);box.setTextSize(16);box.setChecked(Boolean.TRUE.equals(enabled.get(field))||"barcode".equals(field));
-            if("barcode".equals(field))box.setEnabled(false);
-            box.setOnCheckedChangeListener((v,checked)->{enabled.put(field,checked);updatePreview();});
-            row.addView(box,new LinearLayout.LayoutParams(0,dp(48),1));
-            Button up=button("↑");up.setEnabled(index>0);up.setOnClickListener(v->move(index,index-1));
-            Button down=button("↓");down.setEnabled(index<order.size()-1);down.setOnClickListener(v->move(index,index+1));
-            row.addView(up,new LinearLayout.LayoutParams(dp(52),dp(44)));row.addView(down,new LinearLayout.LayoutParams(dp(52),dp(44)));
-            rows.addView(row);
+            final String field=order.get(i);
+            final boolean selected=index==selectedIndex;
+
+            LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(10),dp(3),dp(8),dp(3));
+            row.setBackgroundColor(selected?gold():rowDark());
+
+            TextView number=text(String.valueOf(i+1)+".",17,selected?Color.BLACK:Color.WHITE,true);
+            number.setGravity(Gravity.CENTER_VERTICAL);row.addView(number,new LinearLayout.LayoutParams(dp(34),dp(50)));
+
+            TextView name=text(label(field),17,selected?Color.BLACK:Color.WHITE,true);
+            name.setGravity(Gravity.CENTER_VERTICAL);row.addView(name,new LinearLayout.LayoutParams(0,dp(50),1));
+
+            CheckBox use=new CheckBox(this);use.setChecked(Boolean.TRUE.equals(enabled.get(field))||"barcode".equals(field));
+            use.setEnabled(!"barcode".equals(field));
+            use.setContentDescription("Include "+label(field));
+            use.setOnCheckedChangeListener((b,checked)->{enabled.put(field,checked);updatePreview();});
+            row.addView(use,new LinearLayout.LayoutParams(dp(56),dp(50)));
+
+            View.OnClickListener select=v->{selectedIndex=index;renderRows();};
+            row.setOnClickListener(select);number.setOnClickListener(select);name.setOnClickListener(select);
+
+            LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(54));rp.setMargins(0,0,0,dp(4));rows.addView(row,rp);
         }
+        moveUp.setEnabled(selectedIndex>0);
+        moveDown.setEnabled(selectedIndex>=0&&selectedIndex<order.size()-1);
         updatePreview();
     }
 
-    private void move(int from,int to){
-        if(to<0||to>=order.size())return;
-        String f=order.remove(from);order.add(to,f);renderRows();
+    private void moveSelected(int direction){
+        int to=selectedIndex+direction;
+        if(selectedIndex<0||to<0||to>=order.size())return;
+        String field=order.remove(selectedIndex);order.add(to,field);selectedIndex=to;renderRows();
     }
 
     private void updatePreview(){
-        StringBuilder b=new StringBuilder("Column order: ");int n=0;
+        StringBuilder b=new StringBuilder("File columns: ");int n=0;
         for(String f:order){
             if(!Boolean.TRUE.equals(enabled.get(f))&&!"barcode".equals(f))continue;
-            if(n++>0)b.append("  ⇥  ");b.append(label(f));
+            if(n++>0)b.append("  →  ");b.append(label(f));
         }
         preview.setText(b.toString());
     }
 
     private void resetDefaults(){
         order.clear();enabled.clear();
-        for(String f:ALL){order.add(f);enabled.put(f,true);}renderRows();
+        for(String f:ALL){order.add(f);enabled.put(f,true);}selectedIndex=0;renderRows();
     }
 
     private void saveAndFinish(){
@@ -165,6 +199,8 @@ public class FormatConfigActivity extends Activity {
         }
         if(b.indexOf("barcode")<0){if(b.length()>0)b.insert(0,',');b.insert(0,"barcode");}
         String key=MODE_EXPORT.equals(mode)?KEY_EXPORT:KEY_IMPORT;
-        prefs().edit().putString(key,b.toString()).apply();setResult(RESULT_OK);finish();
+        prefs().edit().putString(key,b.toString()).apply();
+        setResult(RESULT_OK);
+        finish();
     }
 }
