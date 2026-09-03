@@ -24,18 +24,59 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Build release APK
+
+      - name: Prepare 3.0.42
+        run: python3 .github/prepare_3042.py
+
+      - name: Enable AndroidX
+        run: echo "android.useAndroidX=true" > gradle.properties
+
+      - name: Restore permanent signing keystore
+        env:
+          ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import os, re, base64
+          s = os.environ.get('ONHAND_KEYSTORE_BASE64', '').strip()
+          if not s:
+              raise SystemExit('ONHAND_KEYSTORE_BASE64 is empty')
+          if 'ONHAND_KEYSTORE_BASE64=' in s:
+              s = s.split('ONHAND_KEYSTORE_BASE64=', 1)[1]
+          s = s.strip().strip('"').strip("'").strip('`')
+          s = re.sub(r'\s+', '', s)
+          s += '=' * ((4 - len(s) % 4) % 4)
+          data = base64.b64decode(s, validate=False)
+          if len(data) < 100:
+              raise SystemExit('Decoded keystore is unexpectedly small')
+          path = os.path.join(os.environ['RUNNER_TEMP'], 'onhand-release.jks')
+          with open(path, 'wb') as f:
+              f.write(data)
+          print(f'Keystore restored ({len(data)} bytes)')
+          PY
+          test -s "$RUNNER_TEMP/onhand-release.jks"
+
+      - name: Verify signing key
+        env:
+          ONHAND_STORE_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
+          ONHAND_KEY_ALIAS: ${{ secrets.ONHAND_KEY_ALIAS }}
+        run: keytool -list -keystore "$RUNNER_TEMP/onhand-release.jks" -storepass "$ONHAND_STORE_PASSWORD" -alias "$ONHAND_KEY_ALIAS" >/dev/null
+
+      - name: Build signed release APK
+        env:
+          ONHAND_KEYSTORE_PATH: ${{ runner.temp }}/onhand-release.jks
+          ONHAND_STORE_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
+          ONHAND_KEY_ALIAS: ${{ secrets.ONHAND_KEY_ALIAS }}
+          ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
         run: gradle :app:assembleRelease --stacktrace
+
+      - name: Rename APK
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk
+
+      - name: Verify APK signature
+        run: "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk
+
       - uses: actions/upload-artifact@v4
         with:
-          name: OnHand-3.0.9-release-unsigned
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Android-signing-tools-35
-          path: |
-            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/apksigner
-            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/lib/apksigner.jar
-            ${{ env.ANDROID_HOME }}/build-tools/35.0.0/zipalign
+          name: iCE-Onhand-Inventory-3.0.42-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk
           if-no-files-found: error
