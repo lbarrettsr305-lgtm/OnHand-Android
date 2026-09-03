@@ -96,9 +96,9 @@ new_export='''    private String tsvField(String value){
 '''
 s=s[:start]+new_export+s[end:]
 
-# Write the tab-delimited output.
-s=s.replace('os.write(buildExportCsv().getBytes(StandardCharsets.UTF_8));toast("TXT exported")',
-            'os.write(buildExportTsv().getBytes(StandardCharsets.UTF_8));toast("Tab-delimited TXT exported")',1)
+# Update every export path, including direct Downloads and document-picker output.
+s=s.replace('buildExportCsv()','buildExportTsv()')
+s=s.replace('toast("TXT exported")','toast("Tab-delimited TXT exported")')
 
 # Import TAB-delimited TXT. Keep CSV fallback so existing older inventory files
 # remain usable after upgrading.
