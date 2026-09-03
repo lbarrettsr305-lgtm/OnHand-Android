@@ -3,7 +3,7 @@ name: Build iCE Onhand Inventory 3.0.42 Signed
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'app/**'
       - '.github/workflows/build-3020.yml'
@@ -28,14 +28,13 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Apply 3.0.42 keyboard fix and Jamaican-style icon
+      - name: Apply 3.0.42 changes
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
           p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
           s = p.read_text()
-
           if 'import android.content.Context;' not in s:
               s = s.replace('import android.content.Intent;\n', 'import android.content.Intent;\nimport android.content.Context;\n', 1)
           if 'import android.view.MotionEvent;' not in s:
@@ -44,87 +43,65 @@ jobs:
               s = s.replace('import android.view.ViewGroup;\n', 'import android.view.ViewGroup;\nimport android.view.inputmethod.InputMethodManager;\n', 1)
 
           old_barcode = 'barcode=new EditText(this); barcode.setSingleLine(true); barcode.setTextSize(20); barcode.setHint("Scan or type barcode"); barcode.setInputType(InputType.TYPE_CLASS_TEXT);'
-          new_barcode = '''barcode=new EditText(this); barcode.setSingleLine(true); barcode.setTextSize(20); barcode.setHint("Scan or type barcode"); barcode.setInputType(InputType.TYPE_CLASS_TEXT);
-        barcode.setShowSoftInputOnFocus(false);
-        barcode.setOnTouchListener((v,event)->{
-            if(event.getAction()==MotionEvent.ACTION_DOWN){
-                barcode.setShowSoftInputOnFocus(true);
-                barcode.postDelayed(() -> {
-                    InputMethodManager imm=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-                    if(imm!=null) imm.showSoftInput(barcode,InputMethodManager.SHOW_IMPLICIT);
-                },50);
-            }
-            return false;
-        });
-        barcode.setOnFocusChangeListener((v,hasFocus)->{
-            if(!hasFocus) barcode.setShowSoftInputOnFocus(false);
-        });'''
+          new_barcode = ('barcode=new EditText(this); barcode.setSingleLine(true); barcode.setTextSize(20); barcode.setHint("Scan or type barcode"); barcode.setInputType(InputType.TYPE_CLASS_TEXT);\n'
+                         '        barcode.setShowSoftInputOnFocus(false);\n'
+                         '        barcode.setOnTouchListener((v,event)->{\n'
+                         '            if(event.getAction()==MotionEvent.ACTION_DOWN){\n'
+                         '                barcode.setShowSoftInputOnFocus(true);\n'
+                         '                barcode.postDelayed(() -> {\n'
+                         '                    InputMethodManager imm=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);\n'
+                         '                    if(imm!=null) imm.showSoftInput(barcode,InputMethodManager.SHOW_IMPLICIT);\n'
+                         '                },50);\n'
+                         '            }\n'
+                         '            return false;\n'
+                         '        });\n'
+                         '        barcode.setOnFocusChangeListener((v,hasFocus)->{\n'
+                         '            if(!hasFocus) barcode.setShowSoftInputOnFocus(false);\n'
+                         '        });')
           if old_barcode not in s:
               raise SystemExit('Barcode field marker not found')
           s = s.replace(old_barcode, new_barcode, 1)
 
           old_add = 'barcode.setText(""); description.setText(""); qty.setText(""); barcode.requestFocus(); refreshList();'
-          new_add = '''barcode.setText(""); description.setText(""); qty.setText("");
-        barcode.setShowSoftInputOnFocus(false);
-        barcode.requestFocus();
-        hideKeyboardAfterAdd();
-        refreshList();'''
+          new_add = ('barcode.setText(""); description.setText(""); qty.setText("");\n'
+                     '        barcode.setShowSoftInputOnFocus(false);\n'
+                     '        barcode.requestFocus();\n'
+                     '        hideKeyboardAfterAdd();\n'
+                     '        refreshList();')
           if old_add not in s:
               raise SystemExit('Add Count focus marker not found')
           s = s.replace(old_add, new_add, 1)
 
           marker = '    private void scanBarcode() {'
-          helper = '''    private void hideKeyboardAfterAdd() {
-        InputMethodManager imm=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-        if(imm!=null) imm.hideSoftInputFromWindow(barcode.getWindowToken(),0);
-        barcode.postDelayed(() -> {
-            barcode.setShowSoftInputOnFocus(false);
-            InputMethodManager again=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-            if(again!=null) again.hideSoftInputFromWindow(barcode.getWindowToken(),0);
-        },300);
-    }
-
-'''
+          helper = ('    private void hideKeyboardAfterAdd() {\n'
+                    '        InputMethodManager imm=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);\n'
+                    '        if(imm!=null) imm.hideSoftInputFromWindow(barcode.getWindowToken(),0);\n'
+                    '        barcode.postDelayed(() -> {\n'
+                    '            barcode.setShowSoftInputOnFocus(false);\n'
+                    '            InputMethodManager again=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);\n'
+                    '            if(again!=null) again.hideSoftInputFromWindow(barcode.getWindowToken(),0);\n'
+                    '        },300);\n'
+                    '    }\n\n')
           if marker not in s:
-              raise SystemExit('scanBarcode marker not found')
+              raise SystemExit('Scanner marker not found')
           s = s.replace(marker, helper + marker, 1)
           p.write_text(s)
 
           g = Path('app/build.gradle')
-          t = g.read_text()
-          t = t.replace('versionCode 30020', 'versionCode 30042')
-          t = t.replace("versionName '3.0.20'", "versionName '3.0.42'")
+          t = g.read_text().replace('versionCode 30020', 'versionCode 30042').replace("versionName '3.0.20'", "versionName '3.0.42'")
           g.write_text(t)
-          PY
 
-          cat > app/src/main/res/drawable/ice_onhand_icon.xml <<'XML'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp"
-              android:height="108dp"
-              android:viewportWidth="108"
-              android:viewportHeight="108">
-              <path
-                  android:fillColor="#050505"
-                  android:pathData="M0,0h108v108h-108z" />
-              <path
-                  android:fillColor="#FFD100"
-                  android:pathData="M54,10a44,44 0,1 0,0,88a44,44 0,1 0,0,-88z" />
-              <path
-                  android:fillColor="#050505"
-                  android:pathData="M54,20a34,34 0,1 0,0,68a34,34 0,1 0,0,-68z" />
-              <path
-                  android:fillColor="#009B3A"
-                  android:pathData="M22,57 L34,46 L47,60 L76,29 L87,40 L47,82 Z" />
-              <path
-                  android:fillColor="#FFD100"
-                  android:pathData="M31,30h5v17h-5z M40,27h4v20h-4z M48,31h6v16h-6z M58,27h4v20h-4z M66,30h6v17h-6z" />
-              <path
-                  android:fillColor="#FFFFFF"
-                  android:fillAlpha="0.20"
-                  android:pathData="M54,22a32,32 0,0 0,-25,12c11,-7 24,-9 37,-5c7,2 13,5 18,10c-5,-10 -16,-17 -30,-17z" />
-          </vector>
-          XML
+          icon = ('<?xml version="1.0" encoding="utf-8"?>\n'
+                  '<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">\n'
+                  '  <path android:fillColor="#050505" android:pathData="M0,0h108v108h-108z"/>\n'
+                  '  <path android:fillColor="#FFD100" android:pathData="M54,10a44,44 0,1 0,0,88a44,44 0,1 0,0,-88z"/>\n'
+                  '  <path android:fillColor="#050505" android:pathData="M54,20a34,34 0,1 0,0,68a34,34 0,1 0,0,-68z"/>\n'
+                  '  <path android:fillColor="#009B3A" android:pathData="M22,57 L34,46 L47,60 L76,29 L87,40 L47,82 Z"/>\n'
+                  '  <path android:fillColor="#FFD100" android:pathData="M31,30h5v17h-5z M40,27h4v20h-4z M48,31h6v16h-6z M58,27h4v20h-4z M66,30h6v17h-6z"/>\n'
+                  '  <path android:fillColor="#FFFFFF" android:fillAlpha="0.20" android:pathData="M54,22a32,32 0,0 0,-25,12c11,-7 24,-9 37,-5c7,2 13,5 18,10c-5,-10 -16,-17 -30,-17z"/>\n'
+                  '</vector>\n')
+          Path('app/src/main/res/drawable/ice_onhand_icon.xml').write_text(icon)
+          PY
 
       - name: Restore permanent signing keystore
         env:
@@ -150,12 +127,11 @@ jobs:
           PY
           test -s "$RUNNER_TEMP/onhand-release.jks"
 
-      - name: Verify signing key can be unlocked
+      - name: Verify signing key
         env:
           ONHAND_STORE_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
           ONHAND_KEY_ALIAS: ${{ secrets.ONHAND_KEY_ALIAS }}
-        run: |
-          keytool -list -keystore "$RUNNER_TEMP/onhand-release.jks" -storepass "$ONHAND_STORE_PASSWORD" -alias "$ONHAND_KEY_ALIAS" >/dev/null
+        run: keytool -list -keystore "$RUNNER_TEMP/onhand-release.jks" -storepass "$ONHAND_STORE_PASSWORD" -alias "$ONHAND_KEY_ALIAS" >/dev/null
 
       - name: Build signed release APK
         env:
@@ -166,13 +142,10 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk"
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk
 
       - name: Verify APK signature
-        run: |
-          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          test -x "$APKSIGNER"
-          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk"
+        run: "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.42.apk
 
       - uses: actions/upload-artifact@v4
         with:
