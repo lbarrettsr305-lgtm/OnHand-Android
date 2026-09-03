@@ -108,17 +108,25 @@ public final class InventoryAdapter extends BaseAdapter {
         LinearLayout center=new LinearLayout(context);
         center.setOrientation(LinearLayout.VERTICAL);
         center.setPadding(0,0,dp(6),0);
+        center.setClickable(true);
+        center.setFocusable(true);
 
         String desc=r.description==null?"":r.description.trim();
         TextView description=text(desc.isEmpty()?r.barcode:desc, compact?13:15, primary, true);
         description.setSingleLine(false);
-        description.setOnClickListener(v->listener.onAddOne(r));
+        description.setClickable(false);
         center.addView(description);
 
         String price=(r.price==null||r.price.trim().isEmpty())?"":"  •  $"+r.price.trim();
         String barcodeLine=(desc.isEmpty()?"":r.barcode)+price;
-        if (!barcodeLine.isEmpty()) center.addView(text(barcodeLine,compact?11:12,secondary,false));
+        if (!barcodeLine.isEmpty()) {
+            TextView detail=text(barcodeLine,compact?11:12,secondary,false);
+            detail.setClickable(false);
+            center.addView(detail);
+        }
 
+        // The whole description/details area is the fast +1 target, matching the proven older workflow.
+        center.setOnClickListener(v->listener.onAddOne(r));
         root.addView(center,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
 
         LinearLayout right=new LinearLayout(context);
