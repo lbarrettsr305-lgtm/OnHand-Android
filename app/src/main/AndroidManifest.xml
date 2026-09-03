@@ -6,9 +6,13 @@
     <application
         android:allowBackup="true"
         android:label="iCE Onhand Inventory"
-        android:icon="@drawable/ice_onhand_icon"
+        android:icon="@drawable/ice_onhand_approved"
         android:theme="@style/OnHandTheme"
         android:usesCleartextTraffic="false">
+        <activity
+            android:name=".FormatConfigActivity"
+            android:exported="false"
+            android:screenOrientation="unspecified" />
         <activity
             android:name=".QuantityActivity"
             android:exported="false"

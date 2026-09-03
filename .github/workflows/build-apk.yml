@@ -28,15 +28,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Apply Android list compatibility patch
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
-          s = p.read_text()
-          s = s.replace('list.setDividerColor(gold());', 'list.setDivider(new android.graphics.drawable.ColorDrawable(gold()));')
-          p.write_text(s)
-          PY
+      - name: Prepare 3.0.44 features
+        run: python3 .github/prepare_3044.py
 
       - name: Restore permanent signing keystore
         env:
@@ -77,13 +70,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.43.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.44.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.43.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.44.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.43-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.43.apk
+          name: iCE-Onhand-Inventory-3.0.44-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.44.apk
           if-no-files-found: error
