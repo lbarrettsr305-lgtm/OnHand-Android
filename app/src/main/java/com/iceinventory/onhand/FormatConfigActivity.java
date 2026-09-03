@@ -27,6 +27,7 @@ public class FormatConfigActivity extends Activity {
     private static final String SETTINGS="onhand_settings";
     private static final String KEY_IMPORT="import_field_order";
     private static final String KEY_EXPORT="export_field_order";
+    private static final String KEY_EXPORT_POSITIVE_ONLY="export_quantity_above_zero_only";
     private static final String DEFAULT_ORDER="quantity,barcode,description,price";
     private static final String OLD_DEFAULT="barcode,description,price,quantity,location";
     private static final String[] ALL={"quantity","barcode","description","price","location","scan_date","scan_time"};
@@ -37,6 +38,7 @@ public class FormatConfigActivity extends Activity {
     private TextView preview;
     private Button moveUp;
     private Button moveDown;
+    private CheckBox positiveOnly;
     private String mode;
     private int selectedIndex=0;
 
@@ -134,6 +136,16 @@ public class FormatConfigActivity extends Activity {
         preview=text("",14,Color.WHITE,true);preview.setPadding(dp(8),dp(10),dp(8),dp(10));preview.setBackgroundColor(Color.rgb(22,50,36));
         LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);pp.setMargins(0,dp(8),0,0);body.addView(preview,pp);
 
+        if(MODE_EXPORT.equals(mode)){
+            positiveOnly=new CheckBox(this);
+            positiveOnly.setText("Export only items with Quantity > 0");
+            positiveOnly.setTextColor(Color.WHITE);
+            positiveOnly.setTextSize(16);
+            positiveOnly.setChecked(prefs().getBoolean(KEY_EXPORT_POSITIVE_ONLY,false));
+            positiveOnly.setPadding(dp(6),dp(8),dp(6),dp(4));
+            body.addView(positiveOnly,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+
         Button save=button(MODE_EXPORT.equals(mode)?"CONTINUE TO SAVE":"CONTINUE TO FILE");save.setTextColor(Color.WHITE);save.setTypeface(Typeface.DEFAULT,Typeface.BOLD);save.setBackgroundColor(green());save.setOnClickListener(v->saveAndFinish());
         LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(54));sp.setMargins(0,dp(12),0,0);body.addView(save,sp);
 
@@ -213,7 +225,9 @@ public class FormatConfigActivity extends Activity {
         }
         if(b.indexOf("barcode")<0){if(b.length()>0)b.insert(0,',');b.insert(0,"barcode");}
         String key=MODE_EXPORT.equals(mode)?KEY_EXPORT:KEY_IMPORT;
-        prefs().edit().putString(key,b.toString()).apply();
+        SharedPreferences.Editor editor=prefs().edit().putString(key,b.toString());
+        if(MODE_EXPORT.equals(mode)&&positiveOnly!=null)editor.putBoolean(KEY_EXPORT_POSITIVE_ONLY,positiveOnly.isChecked());
+        editor.apply();
         setResult(RESULT_OK);
         finish();
     }
