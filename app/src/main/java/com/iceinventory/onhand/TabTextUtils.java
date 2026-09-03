@@ -16,6 +16,7 @@ import java.util.Map;
 public final class TabTextUtils {
     private static final String KEY_IMPORT="import_field_order";
     private static final String KEY_EXPORT="export_field_order";
+    private static final String KEY_EXPORT_POSITIVE_ONLY="export_quantity_above_zero_only";
     private static final String DEFAULT_STRING="quantity,barcode,description,price";
     private static final String OLD_DEFAULT="barcode,description,price,quantity,location";
     private static final List<String> DEFAULT=Arrays.asList("quantity","barcode","description","price");
@@ -37,10 +38,12 @@ public final class TabTextUtils {
 
     public static String exportRows(List<InventoryDb.Row> rows,SharedPreferences prefs){
         List<String> order=getOrder(prefs,true);
+        boolean positiveOnly=prefs.getBoolean(KEY_EXPORT_POSITIVE_ONLY,false);
         StringBuilder b=new StringBuilder();
         SimpleDateFormat dateFmt=new SimpleDateFormat("yyyy-MM-dd",Locale.US);
         SimpleDateFormat timeFmt=new SimpleDateFormat("HH:mm:ss",Locale.US);
         for(InventoryDb.Row r:rows){
+            if(positiveOnly&&r.quantity<=0)continue;
             Date when=new Date(r.updatedAt>0?r.updatedAt:System.currentTimeMillis());
             for(int i=0;i<order.size();i++){
                 if(i>0)b.append('\t');
