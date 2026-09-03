@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Build preparation for install-safe signed version 3.0.42.
 main = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
 s = main.read_text()
 
