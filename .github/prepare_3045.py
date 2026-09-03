@@ -1,0 +1,53 @@
+from pathlib import Path
+import re
+
+p=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
+s=p.read_text()
+
+def rep(old,new,label):
+    global s
+    if old not in s:
+        raise SystemExit(f'3.0.45 patch target missing: {label}')
+    s=s.replace(old,new,1)
+
+rep('    private static final int REQ_QUANTITY=1004;\n',
+    '    private static final int REQ_QUANTITY=1004;\n    private static final int REQ_MULTIPLY_CURRENT=1005;\n    private static final int REQ_IMPORT_FORMAT=1006;\n    private static final int REQ_EXPORT_FORMAT=1007;\n',
+    'request codes')
+
+s=s.replace('R.drawable.ice_onhand_icon','R.drawable.ice_onhand_approved')
+s=s.replace('list.setDividerColor(gold());','list.setDivider(new android.graphics.drawable.ColorDrawable(gold()));')
+
+rep('''        LinearLayout actionBar=new LinearLayout(this);actionBar.setOrientation(LinearLayout.HORIZONTAL);\n        Button add=button("＋  Add Count",1);add.setTypeface(Typeface.DEFAULT,Typeface.BOLD);add.setOnClickListener(v->addItem());\n        Button addLoc=button("＋ Location",0);addLoc.setOnClickListener(v->addLocation());\n        actionBar.addView(add,new LinearLayout.LayoutParams(0,dp(52),2));\n        LinearLayout.LayoutParams al=new LinearLayout.LayoutParams(0,dp(52),1);al.setMargins(dp(6),0,0,0);\n        actionBar.addView(addLoc,al);\n        root.addView(actionBar);\n''','''        LinearLayout actionBar=new LinearLayout(this);actionBar.setOrientation(LinearLayout.HORIZONTAL);\n        Button add=button("＋ Add Count",1);add.setTypeface(Typeface.DEFAULT,Typeface.BOLD);add.setOnClickListener(v->addItem());\n        Button multiply=button("× Cases",2);multiply.setTypeface(Typeface.DEFAULT,Typeface.BOLD);multiply.setOnClickListener(v->launchCurrentMultiply());\n        Button addLoc=button("＋ Location",0);addLoc.setOnClickListener(v->addLocation());\n        actionBar.addView(add,new LinearLayout.LayoutParams(0,dp(52),2));\n        LinearLayout.LayoutParams ml=new LinearLayout.LayoutParams(0,dp(52),1);ml.setMargins(dp(5),0,dp(5),0);\n        actionBar.addView(multiply,ml);\n        actionBar.addView(addLoc,new LinearLayout.LayoutParams(0,dp(52),1));\n        root.addView(actionBar);\n''','main multiplication button')
+
+rep('''        LinearLayout io=new LinearLayout(this);io.setOrientation(LinearLayout.HORIZONTAL);io.setPadding(0,dp(4),0,0);\n        Button imp=button("⬇ Import CSV",1);imp.setTypeface(Typeface.DEFAULT,Typeface.BOLD);imp.setOnClickListener(v->importCsv());\n        Button exp=button("⬆ Export CSV",2);exp.setTypeface(Typeface.DEFAULT,Typeface.BOLD);exp.setOnClickListener(v->showExportDialog());\n        io.addView(imp,new LinearLayout.LayoutParams(0,dp(52),1));\n        LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(0,dp(52),1);ep.setMargins(dp(6),0,0,0);\n        io.addView(exp,ep);\n        root.addView(io);\n''','''        LinearLayout io=new LinearLayout(this);io.setOrientation(LinearLayout.HORIZONTAL);io.setPadding(0,dp(4),0,0);\n        Button imp=button("⬇ Import TXT",1);imp.setTypeface(Typeface.DEFAULT,Typeface.BOLD);imp.setOnClickListener(v->startImportFormatFlow());\n        Button exp=button("⬆ Export TXT",2);exp.setTypeface(Typeface.DEFAULT,Typeface.BOLD);exp.setOnClickListener(v->startExportFormatFlow());\n        io.addView(imp,new LinearLayout.LayoutParams(0,dp(52),1));\n        LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(0,dp(52),1);ep.setMargins(dp(6),0,0,0);\n        io.addView(exp,ep);\n        root.addView(io);\n''','integrated TXT controls')
+
+rep('''    private String friendlyUnknownMode() {\n''','''    private void startImportFormatFlow() {\n        Intent i=new Intent(this,FormatConfigActivity.class);\n        i.putExtra(FormatConfigActivity.EXTRA_MODE,FormatConfigActivity.MODE_IMPORT);\n        startActivityForResult(i,REQ_IMPORT_FORMAT);\n    }\n\n    private void startExportFormatFlow() {\n        Intent i=new Intent(this,FormatConfigActivity.class);\n        i.putExtra(FormatConfigActivity.EXTRA_MODE,FormatConfigActivity.MODE_EXPORT);\n        startActivityForResult(i,REQ_EXPORT_FORMAT);\n    }\n\n    private String friendlyUnknownMode() {\n''','integrated format flow methods')
+
+rep('''    private void launchQuantity(InventoryDb.Row r) {\n''','''    private void launchCurrentMultiply() {\n        String code=maybeGtin(barcode.getText().toString().trim());\n        if(code.isEmpty()){toast("Scan or enter a barcode first");focusBarcodeWithoutKeyboard();return;}\n        hideKeyboard();\n        Intent i=new Intent(this,QuantityActivity.class);\n        i.putExtra(QuantityActivity.EXTRA_BARCODE,code);\n        i.putExtra(QuantityActivity.EXTRA_DESCRIPTION,description.getText().toString());\n        i.putExtra(QuantityActivity.EXTRA_CURRENT_QTY,db.quantityForBarcode(sessionId,code));\n        startActivityForResult(i,REQ_MULTIPLY_CURRENT);\n    }\n\n    private void launchQuantity(InventoryDb.Row r) {\n''','launch current multiply')
+
+pattern=r'''    private void showExportDialog\(\) \{.*?    private String safeFileName\(String s\)\{return \(s==null\?"Inventory":s\)\.replaceAll\("\[\^A-Za-z0-9\._-\]\+","_"\);\}\n'''
+replacement='''    private void showExportDialog() {\n        EditText name=new EditText(this);\n        name.setSingleLine(true);\n        name.setText(safeFileName(sessionName)+"_"+new SimpleDateFormat("yyyy-MM-dd_HHmm",Locale.US).format(new Date())+".txt");\n        name.setSelection(name.getText().length());\n        new AlertDialog.Builder(this).setTitle("Export TXT").setMessage("Tab-delimited text file • choose where to save it.").setView(name)\n                .setPositiveButton("Save to Downloads",(d,w)->saveToDownloads(cleanTextName(name.getText().toString())))\n                .setNeutralButton("Save to Google Drive",(d,w)->startDocumentExport(cleanTextName(name.getText().toString())))\n                .setNegativeButton("Cancel",null).show();\n    }\n\n    private String cleanTextName(String s) {\n        String n=s==null?"":s.trim();if(n.isEmpty())n=safeFileName(sessionName)+".txt";if(!n.toLowerCase(Locale.US).endsWith(".txt"))n+=".txt";return n;\n    }\n\n    private void saveToDownloads(String filename) {\n        if(Build.VERSION.SDK_INT<29){startDocumentExport(filename);return;}\n        try {\n            ContentValues values=new ContentValues();\n            values.put(MediaStore.Downloads.DISPLAY_NAME,filename);\n            values.put(MediaStore.Downloads.MIME_TYPE,"text/plain");\n            values.put(MediaStore.Downloads.RELATIVE_PATH,"Download/");\n            Uri uri=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);\n            if(uri==null)throw new Exception("Could not create file in Downloads");\n            writeExport(uri);\n            toast("Saved to Downloads: "+filename);\n        } catch(Exception e){showError("Export failed",e);}\n    }\n\n    private void startDocumentExport(String filename) {\n        pendingExportFileName=filename;\n        Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/plain");i.putExtra(Intent.EXTRA_TITLE,filename);\n        startActivityForResult(i,REQ_EXPORT);\n        toast("Choose Google Drive or another folder");\n    }\n\n    private String safeFileName(String s){return (s==null?"Inventory":s).replaceAll("[^A-Za-z0-9._-]+","_");}\n'''
+s2,n=re.subn(pattern,replacement,s,count=1,flags=re.S)
+if n!=1: raise SystemExit('3.0.45 patch target missing: export TXT methods')
+s=s2
+
+pattern=r'''    @Override protected void onActivityResult\(int requestCode,int resultCode,Intent data\) \{.*?    \}\n\n    private void writeExport'''
+replacement='''    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {\n        super.onActivityResult(requestCode,resultCode,data);\n        if(resultCode!=RESULT_OK)return;\n\n        if(requestCode==REQ_IMPORT_FORMAT){\n            importCsv();\n            return;\n        }\n        if(requestCode==REQ_EXPORT_FORMAT){\n            showExportDialog();\n            return;\n        }\n        if(requestCode==REQ_MULTIPLY_CURRENT){\n            if(data==null)return;\n            int amount=data.getIntExtra(QuantityActivity.EXTRA_QUANTITY,0);\n            if(amount>0){qty.setText(String.valueOf(amount));qty.setSelection(qty.getText().length());}\n            return;\n        }\n        if(data==null)return;\n        if(requestCode==REQ_EXPORT)writeExport(data.getData());\n        else if(requestCode==REQ_IMPORT)readImport(data.getData());\n        else if(requestCode==REQ_QUANTITY) {\n            int amount=data.getIntExtra(QuantityActivity.EXTRA_QUANTITY,0);\n            if(amount>0&&pendingQuantityRowId>0) {\n                db.incrementQuantity(pendingQuantityRowId,amount);lastBarcode=pendingQuantityBarcode;refreshList();\n            }\n            pendingQuantityRowId=-1;pendingQuantityBarcode="";\n        }\n    }\n\n    private void writeExport'''
+s2,n=re.subn(pattern,replacement,s,count=1,flags=re.S)
+if n!=1: raise SystemExit('3.0.45 patch target missing: activity result flow')
+s=s2
+
+pattern=r'''    private void writeExport\(Uri uri\) \{.*?    \}\n\n    private int findHeader'''
+replacement='''    private void writeExport(Uri uri) {\n        if(uri==null)return;\n        try(OutputStream os=getContentResolver().openOutputStream(uri)) {\n            if(os==null)throw new Exception("No output stream");\n            os.write(TabTextUtils.exportRows(db.items(sessionId),prefs()).getBytes(StandardCharsets.UTF_8));\n            toast("Tab-delimited TXT exported");\n        } catch(Exception e){showError("Export failed",e);}\n    }\n\n    private int findHeader'''
+s2,n=re.subn(pattern,replacement,s,count=1,flags=re.S)
+if n!=1: raise SystemExit('3.0.45 patch target missing: write export')
+s=s2
+
+pattern=r'''    private int findHeader\(.*?\n    private void showError'''
+replacement='''    private void readImport(Uri uri) {\n        if(uri==null)return;\n        try(InputStream is=getContentResolver().openInputStream(uri);\n            BufferedReader br=new BufferedReader(new InputStreamReader(is,StandardCharsets.UTF_8))) {\n            int imported=TabTextUtils.importRows(br,db,sessionId,prefs(),prefs().getBoolean(KEY_AUTO_GTIN,false));\n            refreshLocations();refreshList();toast("Imported "+imported+" tab-delimited TXT rows");\n        } catch(Exception e){showError("Import failed",e);}\n    }\n\n    private void showError'''
+s2,n=re.subn(pattern,replacement,s,count=1,flags=re.S)
+if n!=1: raise SystemExit('3.0.45 patch target missing: import parser')
+s=s2
+
+p.write_text(s)
+print('Prepared MainActivity for iCE Onhand 3.0.45')
