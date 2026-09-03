@@ -9,6 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 public final class BarcodeLookup {
     private BarcodeLookup() {}
@@ -16,10 +17,12 @@ public final class BarcodeLookup {
     public static final class Result {
         public final String description;
         public final String imageUrl;
+        public final String price;
 
-        public Result(String description, String imageUrl) {
+        public Result(String description, String imageUrl, String price) {
             this.description = description == null ? "" : description;
             this.imageUrl = imageUrl == null ? "" : imageUrl;
+            this.price = price == null ? "" : price;
         }
     }
 
@@ -31,7 +34,7 @@ public final class BarcodeLookup {
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(8000);
         conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("User-Agent", "OnHand-Android/3");
+        conn.setRequestProperty("User-Agent", "iCE-Onhand-Inventory/3");
         int status = conn.getResponseCode();
         if (status == 404) return null;
         if (status == 429) throw new Exception("Internet barcode lookup daily/rate limit reached");
@@ -59,8 +62,22 @@ public final class BarcodeLookup {
         JSONArray images = item.optJSONArray("images");
         if (images != null && images.length() > 0) imageUrl = images.optString(0, "").trim();
 
-        if (description.isEmpty() && imageUrl.isEmpty()) return null;
-        return new Result(description, imageUrl);
+        String price = "";
+        double low = item.optDouble("lowest_recorded_price", 0d);
+        if (low > 0d) price = String.format(Locale.US, "%.2f", low);
+        if (price.isEmpty()) {
+            JSONArray offers=item.optJSONArray("offers");
+            if (offers!=null && offers.length()>0) {
+                JSONObject offer=offers.optJSONObject(0);
+                if (offer!=null) {
+                    double p=offer.optDouble("price",0d);
+                    if(p>0d) price=String.format(Locale.US,"%.2f",p);
+                }
+            }
+        }
+
+        if (description.isEmpty() && imageUrl.isEmpty() && price.isEmpty()) return null;
+        return new Result(description, imageUrl, price);
     }
 
     public static String lookupDescription(String barcode) throws Exception {

@@ -10,6 +10,10 @@
         android:theme="@style/OnHandTheme"
         android:usesCleartextTraffic="false">
         <activity
+            android:name=".QuantityActivity"
+            android:exported="false"
+            android:screenOrientation="unspecified" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="unspecified">
