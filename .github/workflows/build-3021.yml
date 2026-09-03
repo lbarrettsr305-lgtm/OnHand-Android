@@ -1,4 +1,4 @@
-name: Build iCE Onhand Inventory 3.0.36 Signed
+name: Build iCE Onhand Inventory 3.0.37 Signed
 
 on:
   workflow_dispatch:
@@ -18,6 +18,7 @@ on:
       - 'scripts/patch_3034b.py'
       - 'scripts/patch_3035.py'
       - 'scripts/patch_3036.py'
+      - 'scripts/patch_3037.py'
       - '.github/workflows/build-3021.yml'
 
 jobs:
@@ -63,6 +64,8 @@ jobs:
         run: python3 scripts/patch_3035.py
       - name: Apply 3.0.36 description and quantity visibility fixes
         run: python3 scripts/patch_3036.py
+      - name: Apply 3.0.37 fixed-header quantity dialog
+        run: python3 scripts/patch_3037.py
       - name: Restore permanent signing keystore
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
@@ -93,16 +96,16 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
       - name: Prepare easy-install APK names
         run: |
-          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.36.apk"
+          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.37.apk"
           cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/iCE-Onhand-Update.apk"
       - name: Verify APK signature
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.36.apk"
+          "$APKSIGNER" verify --verbose --print-certs "app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.37.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.36-signed
+          name: iCE-Onhand-Inventory-3.0.37-signed
           path: |
-            app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.36.apk
+            app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.37.apk
             app/build/outputs/apk/release/iCE-Onhand-Update.apk
           if-no-files-found: error
