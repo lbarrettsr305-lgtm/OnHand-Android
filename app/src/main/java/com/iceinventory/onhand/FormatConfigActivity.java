@@ -27,7 +27,9 @@ public class FormatConfigActivity extends Activity {
     private static final String SETTINGS="onhand_settings";
     private static final String KEY_IMPORT="import_field_order";
     private static final String KEY_EXPORT="export_field_order";
-    private static final String[] ALL={"barcode","description","price","quantity","location"};
+    private static final String DEFAULT_ORDER="quantity,barcode,description,price";
+    private static final String OLD_DEFAULT="barcode,description,price,quantity,location";
+    private static final String[] ALL={"quantity","barcode","description","price","location","scan_date","scan_time"};
 
     private final ArrayList<String> order=new ArrayList<>();
     private final Map<String,Boolean> enabled=new HashMap<>();
@@ -56,7 +58,11 @@ public class FormatConfigActivity extends Activity {
 
     private void load(){
         String key=MODE_EXPORT.equals(mode)?KEY_EXPORT:KEY_IMPORT;
-        String saved=prefs().getString(key,"barcode,description,price,quantity,location");
+        String saved=prefs().getString(key,DEFAULT_ORDER);
+        if(saved==null||saved.trim().isEmpty()||OLD_DEFAULT.equals(saved.trim())){
+            saved=DEFAULT_ORDER;
+            prefs().edit().putString(key,DEFAULT_ORDER).apply();
+        }
         for(String part:saved.split(",")){
             String f=part.trim().toLowerCase(Locale.US);
             if(valid(f)&&!order.contains(f)){
@@ -77,11 +83,14 @@ public class FormatConfigActivity extends Activity {
     }
 
     private String label(String f){
+        if("quantity".equals(f))return "Quantity";
         if("barcode".equals(f))return "Barcode / UPC / GTIN";
         if("description".equals(f))return "Description";
         if("price".equals(f))return "Price";
-        if("quantity".equals(f))return "Quantity";
-        return "Location";
+        if("location".equals(f))return "Location";
+        if("scan_date".equals(f))return "Scan Date";
+        if("scan_time".equals(f))return "Scan Time";
+        return f;
     }
 
     private TextView text(String s,float size,int color,boolean bold){
@@ -109,8 +118,8 @@ public class FormatConfigActivity extends Activity {
         body.addView(text("TXT file • TAB delimited",18,gold(),true));
 
         String helpText=MODE_EXPORT.equals(mode)
-                ?"Choose the fields to export. Tap a row to select it, use the check box to include/exclude it, then Move Up or Move Down to set the column order."
-                :"Set the incoming file column order. Tap a row to select it, use the check box to include/exclude it, then Move Up or Move Down to match the file. Barcode must remain included.";
+                ?"Standard order is Quantity, Barcode, Description, Price. Check Location, Scan Date or Scan Time only when you need them. Tap a row and use Move Up / Move Down to change its column position."
+                :"Standard incoming order is Quantity, Barcode, Description, Price. Check optional fields only when they exist in the file, then use Move Up / Move Down to match the file. Barcode must remain included.";
         TextView help=text(helpText,14,Color.WHITE,false);help.setPadding(0,dp(5),0,dp(10));body.addView(help);
 
         rows=new LinearLayout(this);rows.setOrientation(LinearLayout.VERTICAL);body.addView(rows);
@@ -187,7 +196,12 @@ public class FormatConfigActivity extends Activity {
 
     private void resetDefaults(){
         order.clear();enabled.clear();
-        for(String f:ALL){order.add(f);enabled.put(f,true);}selectedIndex=0;renderRows();
+        for(String f:ALL){order.add(f);enabled.put(f,false);}
+        enabled.put("quantity",true);
+        enabled.put("barcode",true);
+        enabled.put("description",true);
+        enabled.put("price",true);
+        selectedIndex=0;renderRows();
     }
 
     private void saveAndFinish(){
