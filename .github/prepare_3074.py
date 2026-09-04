@@ -25,16 +25,14 @@ rep('cases.setOnFocusChangeListener((v,has)->{if(has){active=cases;hideKeyboard(
     'cases.setOnFocusChangeListener((v,has)->{if(has){active=cases;hideKeyboard();scroll.post(()->scroll.fullScroll(View.FOCUS_DOWN));}});',
     'cases focus auto-scroll')
 
-# Recover vertical space without changing any buttons or their functions.
+# Recover vertical space without changing any controls or their functions.
 rep('body.setPadding(dp(14),dp(10),dp(14),dp(16));',
     'body.setPadding(dp(14),dp(6),dp(14),dp(12));','body padding')
 rep('keypad.setPadding(0,dp(10),0,0);',
     'keypad.setPadding(0,dp(4),0,dp(8));','keypad padding')
-rep('body.addView(add,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(56)));',
-    'body.addView(add,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(50)));','add count height')
 
-# There are exactly two 54dp keypad-cell height assignments after the chained
-# preparations: one for blank spacer cells and one for active keypad buttons.
+# Make the app's custom calculator rows slightly shorter so the lower row fits.
+# Do not touch Samsung keyboard behavior or multiplication calculations.
 old_height='lp.width=0;lp.height=dp(54);lp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);'
 count=s.count(old_height)
 if count!=2:
