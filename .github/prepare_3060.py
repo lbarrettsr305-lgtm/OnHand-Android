@@ -7,6 +7,13 @@ runpy.run_path('.github/prepare_3059.py', run_name='__main__')
 p = Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
 s = p.read_text()
 
+# ScrollView is not imported by the base source.
+old_import = 'import android.widget.Spinner;\nimport android.widget.Switch;\n'
+new_import = 'import android.widget.Spinner;\nimport android.widget.ScrollView;\nimport android.widget.Switch;\n'
+if old_import not in s:
+    raise SystemExit('3.0.60 target missing: widget imports')
+s = s.replace(old_import, new_import, 1)
+
 # Smaller/older phones can run out of vertical room after the User/Export and
 # Zero-passcode controls were added. Make the Options content scrollable so the
 # Unknown Barcode Behavior control is always reachable without changing the
