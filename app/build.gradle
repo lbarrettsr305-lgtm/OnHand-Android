@@ -10,8 +10,8 @@ android {
         applicationId 'com.iceinventory.onhand'
         minSdk 24
         targetSdk 36
-        versionCode 30060
-        versionName '3.0.60'
+        versionCode 30061
+        versionName '3.0.61'
     }
 
     signingConfigs {
