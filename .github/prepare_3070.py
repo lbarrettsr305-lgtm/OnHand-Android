@@ -28,14 +28,13 @@ rep('TextView app=text("Onhand Inventory 3.0.69",19,Color.WHITE,true);',
     'TextView app=text("Onhand Inventory 3.0.70",19,Color.WHITE,true);',
     'visible version')
 
-# Point the app header to the verified logo and make it large enough for the
-# full iCE Inventory LLC mark to be recognizable.
+# Point every generated in-app reference at the verified logo. Preserve the
+# existing 96dp header dimensions from 3.0.67+ so no working layout is changed.
 s = s.replace('R.drawable.ice_inventory_master_3069', 'R.drawable.ice_inventory_master_3070')
 if 'R.drawable.ice_inventory_master_3069' in s:
     raise SystemExit('3.0.70 old corrupt header logo reference still present')
-rep('LinearLayout.LayoutParams lpLogo=new LinearLayout.LayoutParams(dp(68),dp(68));',
-    'LinearLayout.LayoutParams lpLogo=new LinearLayout.LayoutParams(dp(86),dp(86));',
-    'header logo size')
+if 'LinearLayout.LayoutParams lpLogo=new LinearLayout.LayoutParams(dp(96),dp(96));' not in s:
+    raise SystemExit('3.0.70 expected preserved header logo size missing')
 p.write_text(s)
 
 # Advance Android version only; scanner/count behavior is otherwise unchanged.
