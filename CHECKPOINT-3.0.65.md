@@ -24,11 +24,18 @@ The Options screen on the Samsung test phone was cutting off the current value u
 
 Implementation is in `.github/prepare_3065.py`, which builds on `.github/prepare_3064.py` and all earlier retained features.
 
+## Preferred logo reference saved
+The user identified the older iCE Inventory LLC running-scanner logo shown in the 3.0.39 APK screenshot as the preferred logo direction, but asked for it to be brighter and less dull. An enhanced high-resolution version was created and saved persistently in the ChatGPT Library at:
+
+`/OnHand-Android Checkpoints/iCE-Inventory-Logo-Enhanced-2026-09-04.png`
+
+Use this enhanced logo as the preferred visual reference for the next app icon/logo update unless the user provides a newer replacement.
+
 ## Important preservation rule
 Do not redesign or replace unrelated working screens. Continue from this checkpoint and make only the specific changes requested. Preserve scanner, inventory, export, passcode, sort, logo, and other already-working behavior unless explicitly asked to change them.
 
 ## Recovery instructions for a future chat
-If conversation context is lost, open this repository and read this file first. Use branch `checkpoint-3.0.65-2026-09-04` as the known-good recovery point. Compare any newer `main` state against this checkpoint before making changes.
+If conversation context is lost, open this repository and read this file first. Use branch `checkpoint-3.0.65-2026-09-04` as the known-good recovery point. Compare any newer `main` state against this checkpoint before making changes. Also retrieve the preferred enhanced logo from the ChatGPT Library path above.
 
 ## Immediate test to perform
 Install 3.0.65 over the existing app, open **Options**, scroll to **Unknown Barcode Behavior**, and confirm both the control label and the `Current:` value are fully visible above **Done**.
