@@ -28,8 +28,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare 3.0.68 features
-        run: python3 .github/prepare_3068.py
+      - name: Prepare 3.0.69 features
+        run: python3 .github/prepare_3069.py
 
       - name: Restore permanent signing keystore
         env:
@@ -70,13 +70,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.68.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.69.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.68.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.69.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.68-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.68.apk
+          name: iCE-Onhand-Inventory-3.0.69-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.69.apk
           if-no-files-found: error
