@@ -17,21 +17,21 @@ def rep(old,new,label):
     s=s.replace(old,new,1)
 
 # Move the approved blue motto under the glossy logo.
-old_logo='''LinearLayout.LayoutParams lpLogo=new LinearLayout.LayoutParams(dp(96),dp(96));
-lpLogo.setMargins(0,0,dp(8),0);
-header.addView(logo,lpLogo);'''
+old_logo='''LinearLayout.LayoutParams logoLp=new LinearLayout.LayoutParams(dp(96),dp(96));
+logoLp.setMargins(0,0,dp(4),0);
+header.addView(logo,logoLp);'''
 new_logo='''LinearLayout brandMark=new LinearLayout(this);
         brandMark.setOrientation(LinearLayout.VERTICAL);
         brandMark.setGravity(Gravity.CENTER_HORIZONTAL);
-        LinearLayout.LayoutParams lpLogo=new LinearLayout.LayoutParams(dp(96),dp(86));
-        brandMark.addView(logo,lpLogo);
+        LinearLayout.LayoutParams logoLp=new LinearLayout.LayoutParams(dp(96),dp(86));
+        brandMark.addView(logo,logoLp);
         TextView accuracy=text("SCAN COUNT ACCURATELY",9,Color.rgb(35,120,255),true);
         accuracy.setGravity(Gravity.CENTER);
         accuracy.setSingleLine(true);
         accuracy.setTextScaleX(0.88f);
         brandMark.addView(accuracy,new LinearLayout.LayoutParams(dp(112),dp(18)));
         LinearLayout.LayoutParams brandLp=new LinearLayout.LayoutParams(dp(112),dp(106));
-        brandLp.setMargins(0,0,dp(8),0);
+        brandLp.setMargins(0,0,dp(4),0);
         header.addView(brandMark,brandLp);'''
 rep(old_logo,new_logo,'logo motto placement')
 
@@ -53,8 +53,6 @@ s=p.read_text()
 
 # Extra bottom scroll room is deliberate: fullScroll then lifts the final keypad row
 # above the Android navigation area instead of leaving it underneath the bar.
-rep_q=lambda old,new,label: (_ for _ in ()).throw(SystemExit('3.0.75 target missing: '+label)) if old not in s else None
-
 old='body.setPadding(dp(14),dp(6),dp(14),dp(12));'
 if old not in s: raise SystemExit('3.0.75 target missing: Cases body padding')
 s=s.replace(old,'body.setPadding(dp(14),dp(6),dp(14),dp(52));',1)
