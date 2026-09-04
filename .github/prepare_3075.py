@@ -1,5 +1,6 @@
 from pathlib import Path
 import runpy
+import re
 
 # Preserve every working 3.0.74 feature first, then correct the UI misunderstanding:
 # SCAN COUNT ACCURATELY belongs under the logo, the main action is ADD QTY,
@@ -16,24 +17,26 @@ def rep(old,new,label):
         raise SystemExit('3.0.75 target missing: '+label)
     s=s.replace(old,new,1)
 
-# Move the approved blue motto under the glossy logo.
-old_logo='''LinearLayout.LayoutParams logoLp=new LinearLayout.LayoutParams(dp(96),dp(96));
-logoLp.setMargins(0,0,dp(4),0);
-header.addView(logo,logoLp);'''
+# Move the approved blue motto under the glossy logo. Earlier prep versions have
+# used different LayoutParams variable names, so match only the stable header add.
+logo_pat=r'header\.addView\(logo\s*,\s*[A-Za-z_][A-Za-z0-9_]*\);'
+logo_match=re.search(logo_pat,s)
+if not logo_match:
+    raise SystemExit('3.0.75 target missing: logo header add')
 new_logo='''LinearLayout brandMark=new LinearLayout(this);
         brandMark.setOrientation(LinearLayout.VERTICAL);
         brandMark.setGravity(Gravity.CENTER_HORIZONTAL);
-        LinearLayout.LayoutParams logoLp=new LinearLayout.LayoutParams(dp(96),dp(86));
-        brandMark.addView(logo,logoLp);
+        LinearLayout.LayoutParams brandLogoLp=new LinearLayout.LayoutParams(dp(96),dp(84));
+        brandMark.addView(logo,brandLogoLp);
         TextView accuracy=text("SCAN COUNT ACCURATELY",9,Color.rgb(35,120,255),true);
         accuracy.setGravity(Gravity.CENTER);
         accuracy.setSingleLine(true);
-        accuracy.setTextScaleX(0.88f);
+        accuracy.setTextScaleX(0.84f);
         brandMark.addView(accuracy,new LinearLayout.LayoutParams(dp(112),dp(18)));
-        LinearLayout.LayoutParams brandLp=new LinearLayout.LayoutParams(dp(112),dp(106));
+        LinearLayout.LayoutParams brandLp=new LinearLayout.LayoutParams(dp(112),dp(104));
         brandLp.setMargins(0,0,dp(4),0);
         header.addView(brandMark,brandLp);'''
-rep(old_logo,new_logo,'logo motto placement')
+s=s[:logo_match.start()]+new_logo+s[logo_match.end():]
 
 # Restore the main action to ADD QTY and return it to the green inventory action style.
 old_add='Button add=button("SCAN COUNT\\nACCURATELY",1);add.setTypeface(Typeface.DEFAULT_BOLD,Typeface.BOLD);add.setTextSize(17);add.setTextColor(Color.WHITE);add.setBackgroundColor(Color.rgb(15,70,205));add.setSingleLine(false);add.setMaxLines(2);add.setGravity(Gravity.CENTER);add.setPadding(dp(4),0,dp(4),0);add.setContentDescription("Scan count accurately");add.setOnClickListener(v->addItem());'
@@ -51,11 +54,10 @@ p.write_text(s)
 p=Path('app/src/main/java/com/iceinventory/onhand/QuantityActivity.java')
 s=p.read_text()
 
-# Extra bottom scroll room is deliberate: fullScroll then lifts the final keypad row
-# above the Android navigation area instead of leaving it underneath the bar.
+# Extra bottom scroll room lets the final 0/00 row move above the Android nav bar.
 old='body.setPadding(dp(14),dp(6),dp(14),dp(12));'
 if old not in s: raise SystemExit('3.0.75 target missing: Cases body padding')
-s=s.replace(old,'body.setPadding(dp(14),dp(6),dp(14),dp(52));',1)
+s=s.replace(old,'body.setPadding(dp(14),dp(6),dp(14),dp(56));',1)
 
 old='keypad.setPadding(0,dp(4),0,dp(8));'
 if old not in s: raise SystemExit('3.0.75 target missing: Cases keypad padding')
@@ -69,7 +71,7 @@ old='lp.width=0;lp.height=dp(46);lp.columnSpec=GridLayout.spec(GridLayout.UNDEFI
 count=s.count(old)
 if count!=2:
     raise SystemExit('3.0.75 target missing: expected two 3.0.74 keypad heights, found '+str(count))
-s=s.replace(old,'lp.width=0;lp.height=dp(44);lp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);')
+s=s.replace(old,'lp.width=0;lp.height=dp(40);lp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);')
 
 old='cases.setOnFocusChangeListener((v,has)->{if(has){active=cases;hideKeyboard();scroll.post(()->scroll.fullScroll(View.FOCUS_DOWN));}});'
 new='cases.setOnFocusChangeListener((v,has)->{if(has){active=cases;hideKeyboard();scroll.postDelayed(()->scroll.fullScroll(View.FOCUS_DOWN),120);}});cases.setOnClickListener(v->{active=cases;hideKeyboard();scroll.postDelayed(()->scroll.fullScroll(View.FOCUS_DOWN),120);});'
