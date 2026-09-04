@@ -46,7 +46,7 @@ p.write_text(s)
 p=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
 s=p.read_text()
 old_add='Button add=button("＋ Add Count",1);add.setTypeface(Typeface.DEFAULT,Typeface.BOLD);add.setTextSize(14);add.setSingleLine(true);add.setGravity(Gravity.CENTER);add.setPadding(dp(4),0,dp(4),0);add.setOnClickListener(v->addItem());'
-new_add='Button add=button("SCAN & COUNT",1);add.setTypeface(Typeface.DEFAULT_BOLD,Typeface.BOLD);add.setTextSize(17);add.setSingleLine(true);add.setGravity(Gravity.CENTER);add.setPadding(dp(4),0,dp(4),0);add.setContentDescription("Scan and count accurately");add.setOnClickListener(v->addItem());'
+new_add='Button add=button("SCAN COUNT\\nACCURATELY",1);add.setTypeface(Typeface.DEFAULT_BOLD,Typeface.BOLD);add.setTextSize(17);add.setSingleLine(false);add.setMaxLines(2);add.setGravity(Gravity.CENTER);add.setPadding(dp(4),0,dp(4),0);add.setContentDescription("Scan count accurately");add.setOnClickListener(v->addItem());'
 if old_add not in s:
     raise SystemExit('3.0.74 target missing: main Add Count control')
 s=s.replace(old_add,new_add,1)
@@ -55,7 +55,7 @@ s=s.replace(old_add,new_add,1)
 if 'actionBar.addView(add,new LinearLayout.LayoutParams(0,dp(58),1.55f));' not in s:
     raise SystemExit('3.0.74 target missing: main Add Count layout')
 s=s.replace('actionBar.addView(add,new LinearLayout.LayoutParams(0,dp(58),1.55f));',
-            'actionBar.addView(add,new LinearLayout.LayoutParams(0,dp(66),1.75f));',1)
+            'actionBar.addView(add,new LinearLayout.LayoutParams(0,dp(72),1.85f));',1)
 
 old='TextView app=text("Onhand Inventory 3.0.73",19,Color.WHITE,true);'
 new='TextView app=text("Onhand Inventory 3.0.74",19,Color.WHITE,true);'
@@ -76,4 +76,4 @@ if 'android:label="iCE Onhand 3.0.74"' not in s:
     raise SystemExit('3.0.74 target missing: manifest version')
 p.write_text(s)
 
-print('Prepared iCE Onhand 3.0.74: full Cases keypad reveal + prominent SCAN & COUNT control; scanner and multiplication logic unchanged')
+print('Prepared iCE Onhand 3.0.74: full Cases keypad reveal + prominent SCAN COUNT ACCURATELY control; scanner and multiplication logic unchanged')
