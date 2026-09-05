@@ -40,6 +40,15 @@ public final class TabTextUtils {
         List<String> order=getOrder(prefs,true);
         boolean positiveOnly=prefs.getBoolean(KEY_EXPORT_POSITIVE_ONLY,false);
         StringBuilder b=new StringBuilder();
+
+        // Always include a first-row header. With the standard output order this is:
+        // Quantity | Barcode | Description | Price.
+        for(int i=0;i<order.size();i++){
+            if(i>0)b.append('\t');
+            b.append(exportHeader(order.get(i)));
+        }
+        b.append("\r\n");
+
         SimpleDateFormat dateFmt=new SimpleDateFormat("yyyy-MM-dd",Locale.US);
         SimpleDateFormat timeFmt=new SimpleDateFormat("HH:mm:ss",Locale.US);
         for(InventoryDb.Row r:rows){
@@ -59,6 +68,17 @@ public final class TabTextUtils {
             b.append("\r\n");
         }
         return b.toString();
+    }
+
+    public static String exportHeader(String field){
+        if("quantity".equals(field))return "Quantity";
+        if("barcode".equals(field))return "Barcode";
+        if("description".equals(field))return "Description";
+        if("price".equals(field))return "Price";
+        if("location".equals(field))return "Location";
+        if("scan_date".equals(field))return "Scan Date";
+        if("scan_time".equals(field))return "Scan Time";
+        return field==null?"":field;
     }
 
     public static int importRows(BufferedReader br,InventoryDb db,long sessionId,SharedPreferences prefs,boolean autoGtin) throws Exception{
