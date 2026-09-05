@@ -19,36 +19,25 @@ rep('    private String lastBarcode="";\n',
     '    private String lastBarcode="";\n    private String previousBarcode="";\n',
     'previous scan field')
 
-# Quantity stays focused after a saved-item scan, but the system keyboard remains
-# closed until the operator deliberately touches Quantity.
 rep('''        qty.setInputType(InputType.TYPE_CLASS_NUMBER);styleEntry(qty);installScannerImeWatcher(qty);\n''',
-'''        qty.setInputType(InputType.TYPE_CLASS_NUMBER);styleEntry(qty);installScannerImeWatcher(qty);\n        qty.setShowSoftInputOnFocus(false);\n        qty.setOnTouchListener((v,event)->{\n            if(event.getAction()==MotionEvent.ACTION_DOWN){\n                qty.setShowSoftInputOnFocus(true);\n                qty.postDelayed(()->showKeyboard(qty),60);\n            }\n            return false;\n        });\n        qty.setOnFocusChangeListener((v,has)->{if(!has)qty.setShowSoftInputOnFocus(false);});\n''', 'quantity keyboard policy')
+'''        qty.setInputType(InputType.TYPE_CLASS_NUMBER);styleEntry(qty);installScannerImeWatcher(qty);\n        qty.setShowSoftInputOnFocus(false);\n        qty.setOnTouchListener((v,event)->{\n            if(event.getAction()==MotionEvent.ACTION_DOWN){qty.setShowSoftInputOnFocus(true);qty.postDelayed(()->showKeyboard(qty),60);}\n            return false;\n        });\n        qty.setOnFocusChangeListener((v,has)->{if(!has)qty.setShowSoftInputOnFocus(false);});\n''','quantity keyboard policy')
 
 rep('''    private void focusQuantity() {\n        qty.requestFocus();\n        qty.setSelection(qty.getText().length());\n        qty.postDelayed(()->showKeyboard(qty),80);\n    }\n''',
-'''    private void focusQuantity() {\n        qty.setShowSoftInputOnFocus(false);\n        qty.requestFocus();\n        qty.setSelection(qty.getText().length());\n        qty.postDelayed(this::hideKeyboard,40);\n        qty.postDelayed(this::hideKeyboard,180);\n    }\n''', 'focus quantity without keyboard')
+'''    private void focusQuantity() {\n        qty.setShowSoftInputOnFocus(false);\n        qty.requestFocus();\n        qty.setSelection(qty.getText().length());\n        qty.postDelayed(this::hideKeyboard,40);\n        qty.postDelayed(this::hideKeyboard,180);\n    }\n''','focus quantity without keyboard')
 
-# Remember scan order when a saved barcode is highlighted.
 rep('''        lastBarcode=code==null?"":code.trim();\n        applyFilter();\n''',
-'''        String next=code==null?"":code.trim();\n        if(!next.isEmpty()&&!next.equals(lastBarcode)){previousBarcode=lastBarcode;}\n        lastBarcode=next;\n        applyFilter();\n''', 'scan order tracking')
+'''        String next=code==null?"":code.trim();\n        if(!next.isEmpty()&&!next.equals(lastBarcode)){previousBarcode=lastBarcode;}\n        lastBarcode=next;\n        applyFilter();\n''','scan order tracking')
 
-# After normal sorting, move the current scanned item to row 1 and the previous
-# scanned item to row 2. Everything else keeps the selected sort order.
 rep('''        sortVisibleRows();\n        SharedPreferences p=prefs();\n''',
-'''        sortVisibleRows();\n        if(lastBarcode!=null&&!lastBarcode.isEmpty()){\n            for(int i=0;i<visibleRows.size();i++){\n                InventoryDb.Row r=visibleRows.get(i);\n                if(r!=null&&lastBarcode.equals(r.barcode)){if(i>0){visibleRows.remove(i);visibleRows.add(0,r);}break;}\n            }\n        }\n        if(previousBarcode!=null&&!previousBarcode.isEmpty()&&!previousBarcode.equals(lastBarcode)){\n            for(int i=0;i<visibleRows.size();i++){\n                InventoryDb.Row r=visibleRows.get(i);\n                if(r!=null&&previousBarcode.equals(r.barcode)){if(i!=1){visibleRows.remove(i);visibleRows.add(Math.min(1,visibleRows.size()),r);}break;}\n            }\n        }\n        SharedPreferences p=prefs();\n''', 'pin current and previous scans')
+'''        sortVisibleRows();\n        if(lastBarcode!=null&&!lastBarcode.isEmpty()){\n            for(int i=0;i<visibleRows.size();i++){InventoryDb.Row r=visibleRows.get(i);if(r!=null&&lastBarcode.equals(r.barcode)){if(i>0){visibleRows.remove(i);visibleRows.add(0,r);}break;}}\n        }\n        if(previousBarcode!=null&&!previousBarcode.isEmpty()&&!previousBarcode.equals(lastBarcode)){\n            for(int i=0;i<visibleRows.size();i++){InventoryDb.Row r=visibleRows.get(i);if(r!=null&&previousBarcode.equals(r.barcode)){if(i!=1){visibleRows.remove(i);visibleRows.add(Math.min(1,visibleRows.size()),r);}break;}}\n        }\n        SharedPreferences p=prefs();\n''','pin current and previous scans')
 
-# The current item is always row 1 after applyFilter().
-old='''        for(int i=0;i<visibleRows.size();i++) {\n            InventoryDb.Row r=visibleRows.get(i);\n            if(r!=null&&lastBarcode.equals(r.barcode)) {\n                final int pos=i;\n                list.post(()->list.setSelection(pos));\n                break;\n            }\n        }\n'''
-rep(old,'        list.post(()->list.setSelection(0));\n','reveal current row')
+rep('''        for(int i=0;i<visibleRows.size();i++) {\n            InventoryDb.Row r=visibleRows.get(i);\n            if(r!=null&&lastBarcode.equals(r.barcode)) {\n                final int pos=i;\n                list.post(()->list.setSelection(pos));\n                break;\n            }\n        }\n''','        list.post(()->list.setSelection(0));\n','reveal current row')
 
-rep('TextView app=text("Onhand Inventory 3.0.75",19,Color.WHITE,true);',
-    'TextView app=text("Onhand Inventory 3.0.76",19,Color.WHITE,true);','visible version')
+rep('TextView app=text("Onhand Inventory 3.0.75",19,Color.WHITE,true);','TextView app=text("Onhand Inventory 3.0.76",19,Color.WHITE,true);','visible version')
 p.write_text(s)
 
-# Cases calculator: explicit numeric fields, touch-safe operand selection, and
-# keypad buttons that never steal focus from the selected operand.
 p=Path('app/src/main/java/com/iceinventory/onhand/QuantityActivity.java')
 s=p.read_text()
-
 old='''        perUnit=new EditText(this);\n        perUnit.setTextSize(20);perUnit.setTextColor(Color.BLACK);perUnit.setSingleLine(true);perUnit.setGravity(Gravity.CENTER);\n        perUnit.setShowSoftInputOnFocus(false);\n        cases=new EditText(this);\n        cases.setTextSize(20);cases.setTextColor(Color.BLACK);cases.setSingleLine(true);cases.setGravity(Gravity.CENTER);\n        cases.setShowSoftInputOnFocus(false);\n'''
 new='''        perUnit=new EditText(this);\n        perUnit.setTextSize(20);perUnit.setTextColor(Color.BLACK);perUnit.setSingleLine(true);perUnit.setGravity(Gravity.CENTER);\n        perUnit.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);perUnit.setShowSoftInputOnFocus(false);\n        cases=new EditText(this);\n        cases.setTextSize(20);cases.setTextColor(Color.BLACK);cases.setSingleLine(true);cases.setGravity(Gravity.CENTER);\n        cases.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);cases.setShowSoftInputOnFocus(false);\n'''
 if old not in s: raise SystemExit('3.0.76 target missing: Cases input fields')
@@ -64,8 +53,9 @@ new='''        perUnit.setOnFocusChangeListener((v,has)->{if(has){active=perUnit
 if old not in s: raise SystemExit('3.0.76 target missing: Cases focus handlers')
 s=s.replace(old,new,1)
 
-old='''    private void pressKey(String key){\n        if(active==null)active=perUnit;\n        String s=active.getText().toString();\n        if("Clear".equals(key)){active.setText("");return;}\n        if("⌫".equals(key)){\n            if(!s.isEmpty())active.setText(s.substring(0,s.length()-1));\n            return;\n        }\n        if(s.length()<9)active.setText(s+key);\n        active.setSelection(active.getText().length());\n    }\n'''
-new='''    private void pressKey(String key){\n        if(active==null)active=perUnit;\n        active.requestFocus();hideKeyboard();\n        String s=active.getText().toString();\n        if("Clear".equals(key)){active.setText("");active.setSelection(0);return;}\n        if("⌫".equals(key)){if(!s.isEmpty())active.setText(s.substring(0,s.length()-1));active.setSelection(active.getText().length());return;}\n        if(s.length()<9)active.setText(s+key);\n        active.setSelection(active.getText().length());\n    }\n'''
+# Preserve the 10 × 20 = 200 flow from 3.0.48 while keeping the selected operand active.
+old='''    private void pressKey(String key){\n        if(active==null)active=perUnit;\n        if("×".equals(key)){\n            active=cases;\n            cases.requestFocus();\n            cases.setSelection(cases.getText().length());\n            return;\n        }\n        if("=".equals(key)){\n            recalc();\n            if(total>0)finishWithQuantity();\n            return;\n        }\n        String s=active.getText().toString();\n        if("Clear".equals(key)){active.setText("");return;}\n        if("⌫".equals(key)){\n            if(!s.isEmpty())active.setText(s.substring(0,s.length()-1));\n            return;\n        }\n        if(s.length()<9)active.setText(s+key);\n        active.setSelection(active.getText().length());\n    }\n'''
+new='''    private void pressKey(String key){\n        if(active==null)active=perUnit;\n        if("×".equals(key)){active=cases;cases.requestFocus();cases.setSelection(cases.getText().length());hideKeyboard();return;}\n        if("=".equals(key)){recalc();if(total>0)finishWithQuantity();return;}\n        active.requestFocus();hideKeyboard();\n        String s=active.getText().toString();\n        if("Clear".equals(key)){active.setText("");active.setSelection(0);return;}\n        if("⌫".equals(key)){if(!s.isEmpty())active.setText(s.substring(0,s.length()-1));active.setSelection(active.getText().length());return;}\n        if(s.length()<9)active.setText(s+key);\n        active.setSelection(active.getText().length());\n    }\n'''
 if old not in s: raise SystemExit('3.0.76 target missing: Cases pressKey')
 s=s.replace(old,new,1)
 p.write_text(s)
