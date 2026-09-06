@@ -28,8 +28,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.85 uninstall recovery
-        run: python3 .github/prepare_3085.py
+      - name: Prepare and verify 3.0.86 quantity adjustments
+        run: python3 .github/prepare_3086.py
 
       - name: Restore permanent signing keystore
         env:
@@ -70,13 +70,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.85.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.86.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.85.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.86.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.85-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.85.apk
+          name: iCE-Onhand-Inventory-3.0.86-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.86.apk
           if-no-files-found: error
