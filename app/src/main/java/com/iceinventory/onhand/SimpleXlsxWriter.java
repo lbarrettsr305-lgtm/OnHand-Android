@@ -17,20 +17,29 @@ public final class SimpleXlsxWriter {
     private SimpleXlsxWriter(){}
 
     public static void write(OutputStream output,List<InventoryDb.Row> rows,SharedPreferences prefs) throws IOException {
+        write(output,rows,prefs,false);
+    }
+
+    /** Batch exports must retain zero and negative adjustments for reconciliation. */
+    public static void writeBatch(OutputStream output,List<InventoryDb.Row> rows,SharedPreferences prefs) throws IOException {
+        write(output,rows,prefs,true);
+    }
+
+    private static void write(OutputStream output,List<InventoryDb.Row> rows,SharedPreferences prefs,boolean preserveAdjustments) throws IOException {
         ZipOutputStream zip=new ZipOutputStream(output);
         put(zip,"[Content_Types].xml",contentTypes());
         put(zip,"_rels/.rels",rootRels());
         put(zip,"xl/workbook.xml",workbook());
         put(zip,"xl/_rels/workbook.xml.rels",workbookRels());
         put(zip,"xl/styles.xml",styles());
-        put(zip,"xl/worksheets/sheet1.xml",worksheet(rows,prefs));
+        put(zip,"xl/worksheets/sheet1.xml",worksheet(rows,prefs,preserveAdjustments));
         zip.finish();
         zip.flush();
     }
 
-    private static String worksheet(List<InventoryDb.Row> rows,SharedPreferences prefs){
+    private static String worksheet(List<InventoryDb.Row> rows,SharedPreferences prefs,boolean preserveAdjustments){
         List<String> order=TabTextUtils.getOrder(prefs,true);
-        boolean positiveOnly=prefs.getBoolean("export_quantity_above_zero_only",false);
+        boolean positiveOnly=!preserveAdjustments&&prefs.getBoolean("export_quantity_above_zero_only",false);
         SimpleDateFormat dateFmt=new SimpleDateFormat("yyyy-MM-dd",Locale.US);
         SimpleDateFormat timeFmt=new SimpleDateFormat("HH:mm:ss",Locale.US);
         StringBuilder x=new StringBuilder(8192);
