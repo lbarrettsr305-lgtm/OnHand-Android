@@ -29,7 +29,7 @@ jobs:
         run: echo "android.useAndroidX=true" > gradle.properties
 
       - name: Prepare 3.0.82 data protection
-        run: python3 .github/prepare_3082.py
+        run: python3 .github/prepare_3082_release.py
 
       - name: Restore permanent signing keystore
         env:
