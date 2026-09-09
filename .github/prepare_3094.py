@@ -10,8 +10,8 @@ exec(compile(base.read_text(),str(base),'exec'),{'__name__':'__main__','__file__
 # OLD: Export -> format screen -> CONTINUE TO FILE -> Export Items -> destination.
 # NEW: Export -> Export Items -> format screen -> CONTINUE TO FILE -> destination.
 #
-# Also lock the STANDARD export format to tab-delimited TXT with a first-row header:
-# Qty | Barcode | Description | Price
+# Keep the STANDARD export format as tab-delimited TXT with a first-row header:
+# Quantity | Barcode | Description | Price
 # Users can still deliberately customize the field order in Export Format.
 # -----------------------------------------------------------------------------
 p=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
@@ -55,8 +55,9 @@ p=Path('app/src/main/java/com/iceinventory/onhand/TabTextUtils.java')
 s=p.read_text()
 if 'private static final String DEFAULT_STRING="quantity,barcode,description,price";' not in s:
     raise SystemExit('3.0.94 target missing: standard export field order')
-s=s.replace('// Quantity | Barcode | Description | Price.','// Qty | Barcode | Description | Price.',1)
-s=s.replace('if("quantity".equals(field))return "Quantity";','if("quantity".equals(field))return "Qty";',1)
+# Preserve the existing standard heading exactly as Quantity.
+if 'if("quantity".equals(field))return "Quantity";' not in s:
+    raise SystemExit('3.0.94 target missing: Quantity header')
 p.write_text(s)
 
 # Advance installable package version.
@@ -83,7 +84,7 @@ checks={
     'destination dialog still has Downloads':'Save to Downloads' in main,
     'destination dialog still has Drive':'Save to Google Drive' in main,
     'standard four-field order':'DEFAULT_STRING="quantity,barcode,description,price"' in tab,
-    'header first column is Qty':'if("quantity".equals(field))return "Qty";' in tab,
+    'header first column is Quantity':'if("quantity".equals(field))return "Quantity";' in tab,
     'tab delimiter is used':"b.append('\\t')" in tab,
     'header row always emitted':'b.append("\\r\\n");' in tab,
     '3.0.93 fresh batch reset preserved':'db.resetSessionForReplacementImport(sessionId);' in main,
@@ -91,4 +92,4 @@ checks={
 }
 missing=[k for k,v in checks.items() if not v]
 if missing:raise SystemExit('3.0.94 verification failed: '+', '.join(missing))
-print('Prepared iCE Onhand 3.0.94: direct export destination + standard TXT header Qty/Barcode/Description/Price')
+print('Prepared iCE Onhand 3.0.94: direct export destination + standard TXT header Quantity/Barcode/Description/Price')
