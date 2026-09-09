@@ -23,7 +23,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -48,7 +47,7 @@ public final class BatchMergeActivity extends Activity {
     private final ArrayList<BatchStat> sourceStats=new ArrayList<>();
     private TextView status;
     private Button save,report;
-    private long sourceGrandTotal,combinedGrandTotal;
+    private long sourceGrandTotal,outputTotal;
     private int sourceFiles,sourceRows,selectedFiles;
     private boolean verified;
 
@@ -75,20 +74,20 @@ public final class BatchMergeActivity extends Activity {
     }
 
     private void loadFiles(Intent data){
-        combined.clear();sourceStats.clear();sourceGrandTotal=0;combinedGrandTotal=0;sourceFiles=0;sourceRows=0;selectedFiles=0;verified=false;save.setEnabled(false);report.setEnabled(false);
+        combined.clear();sourceStats.clear();sourceGrandTotal=0;outputTotal=0;sourceFiles=0;sourceRows=0;selectedFiles=0;verified=false;save.setEnabled(false);report.setEnabled(false);
         ArrayList<Uri> uris=new ArrayList<>();
         if(data.getClipData()!=null)for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());
         else if(data.getData()!=null)uris.add(data.getData());
         selectedFiles=uris.size();
         ArrayList<String> errors=new ArrayList<>();
         for(Uri uri:uris){try{sourceStats.add(readOne(uri));sourceFiles++;}catch(Exception e){errors.add(e.getMessage()==null?"Unreadable batch":e.getMessage());}}
-        for(Total t:combined.values())combinedGrandTotal=Math.addExact(combinedGrandTotal,t.quantity);
-        verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&sourceGrandTotal==combinedGrandTotal;
+        for(Total t:combined.values())outputTotal=Math.addExact(outputTotal,t.quantity);
+        verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&sourceGrandTotal==outputTotal;
         StringBuilder m=new StringBuilder();
         m.append("Selected files: ").append(selectedFiles).append("\nSuccessfully loaded: ").append(sourceFiles).append("\nOriginal rows: ").append(sourceRows).append("\nCombined barcodes: ").append(combined.size()).append("\n\n");
         m.append("BATCH / USER QUANTITY TOTALS\n");
         for(BatchStat s:sourceStats)m.append("• ").append(s.userName.isEmpty()?"User prefix missing":s.userName).append(" — ").append(s.quantity).append(" units — ").append(s.rows).append(" rows\n");
-        m.append("\nSource grand total: ").append(sourceGrandTotal).append("\nCombined grand total: ").append(combinedGrandTotal).append("\nDifference: ").append(combinedGrandTotal-sourceGrandTotal).append("\n\n");
+        m.append("\nSource grand total: ").append(sourceGrandTotal).append("\nCombined grand total: ").append(outputTotal).append("\nDifference: ").append(outputTotal-sourceGrandTotal).append("\n\n");
         if(verified)m.append("VERIFIED — ALL SELECTED FILES LOADED AND TOTALS MATCH");else m.append("NOT VERIFIED — EXPORT BLOCKED");
         if(!errors.isEmpty()){m.append("\n\nProblems:");for(String e:errors)m.append("\n• ").append(e);}
         status.setText(m.toString());status.setTextColor(verified?Color.rgb(120,255,140):Color.rgb(255,130,130));save.setEnabled(verified);report.setEnabled(verified);
@@ -130,8 +129,8 @@ public final class BatchMergeActivity extends Activity {
         b.append("Source Rows\t").append(sourceRows).append("\r\n");
         b.append("Combined Unique Barcodes\t").append(combined.size()).append("\r\n");
         b.append("Source Grand Total Quantity\t").append(sourceGrandTotal).append("\r\n");
-        b.append("Combined Grand Total Quantity\t").append(combinedGrandTotal).append("\r\n");
-        b.append("Difference\t").append(combinedGrandTotal-sourceGrandTotal).append("\r\n\r\n");
+        b.append("Combined Grand Total Quantity\t").append(outputTotal).append("\r\n");
+        b.append("Difference\t").append(outputTotal-sourceGrandTotal).append("\r\n\r\n");
         b.append("User\tSource Batch File\tRows\tQuantity\r\n");
         for(BatchStat s:sourceStats)b.append(clean(s.userName.isEmpty()?"USER PREFIX MISSING":s.userName)).append('\t').append(clean(s.fileName)).append('\t').append(s.rows).append('\t').append(s.quantity).append("\r\n");
         b.append("\r\nVerification Method\r\n");
