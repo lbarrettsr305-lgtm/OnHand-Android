@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 # Preserve the validated 3.0.105 barcode build first.
 base=Path('.github/prepare_30105.py')
@@ -46,6 +47,55 @@ new='''        try{q=Integer.parseInt(qText);}catch(Exception e){toast("Quantity
 '''
 if old not in s: raise SystemExit('3.0.106 target missing: positive-only Add Qty guard')
 s=s.replace(old,new,1)
+
+# Keep large partial-barcode searches off the Android UI thread. This prevents
+# older devices from showing the system "Wait / Close app" ANR dialog.
+old='''        List<InventoryDb.Row> flexible=flexibleBarcodeMatches(code);
+        if(flexible.size()==1) {
+            useSavedBarcodeMatch(flexible.get(0),true);
+            return;
+        }
+        if(flexible.size()>1) {
+            showFlexibleBarcodeChoices(flexible);
+            return;
+        }
+
+        String mode=getUnknownBarcodeMode();
+'''
+new='''        final String lookupCode=code;
+        final ArrayList<InventoryDb.Row> lookupRows=new ArrayList<>(allRows);
+        toast("Searching inventory...");
+        new Thread(()->{
+            List<InventoryDb.Row> flexible=flexibleBarcodeMatches(lookupCode,lookupRows);
+            runOnUiThread(()->finishPartialBarcodeSearch(lookupCode,flexible));
+        }).start();
+        return;
+    }
+
+    private void finishPartialBarcodeSearch(String code,List<InventoryDb.Row> flexible) {
+        if(!code.equals(barcode.getText().toString().trim()))return;
+        if(flexible.size()==1) { useSavedBarcodeMatch(flexible.get(0),true);return; }
+        if(flexible.size()>1) { showFlexibleBarcodeChoices(flexible);return; }
+        handleUnknownScannedBarcode(code);
+    }
+
+    private void handleUnknownScannedBarcode(String code) {
+        String mode=getUnknownBarcodeMode();
+'''
+if old not in s: raise SystemExit('3.0.106 target missing: synchronous partial search')
+s=s.replace(old,new,1)
+
+old='''    private List<InventoryDb.Row> flexibleBarcodeMatches(String input) {
+        LinkedHashMap<String,InventoryDb.Row> unique=new LinkedHashMap<>();
+        for(InventoryDb.Row r:allRows) {
+'''
+new='''    private List<InventoryDb.Row> flexibleBarcodeMatches(String input,List<InventoryDb.Row> sourceRows) {
+        LinkedHashMap<String,InventoryDb.Row> unique=new LinkedHashMap<>();
+        for(InventoryDb.Row r:sourceRows) {
+'''
+if old not in s: raise SystemExit('3.0.106 target missing: partial search source')
+s=s.replace(old,new,1)
+
 s=s.replace('Onhand Inventory 3.0.105','Onhand Inventory 3.0.106',1)
 if 'Onhand Inventory 3.0.106' not in s: raise SystemExit('3.0.106 visible version target missing')
 p.write_text(s)
@@ -66,6 +116,8 @@ checks={
     'negative quantity allowed':'if(q==0)' in main,
     'below-zero guard':'if(q<0&&current+q<0)' in main,
     'negative count recorded':'db.addOrIncrement(sessionId,code,description.getText().toString(),currentPrice,q,loc)' in main,
+    'background partial search':'new Thread(()->{' in main and 'finishPartialBarcodeSearch' in main,
+    'stable row snapshot':'new ArrayList<>(allRows)' in main,
     'partial barcode retained':'replaceAll("\\\\s+","")' in main and 'if(nx.length()<4||ny.length()<4)' in main,
 }
 missing=[k for k,v in checks.items() if not v]
