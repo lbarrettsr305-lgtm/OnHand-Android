@@ -10,10 +10,9 @@ exec(compile(base.read_text(),str(base),'exec'),{'__name__':'__main__','__file__
 # OLD: Export -> format screen -> CONTINUE TO FILE -> Export Items -> destination.
 # NEW: Export -> Export Items -> format screen -> CONTINUE TO FILE -> destination.
 #
-# This makes CONTINUE TO FILE actually continue toward the file destination instead
-# of returning to another export-choice menu. Existing batch calculations, file
-# naming, Downloads saving, document-picker/Drive saving, and export contents stay
-# unchanged.
+# Also lock the STANDARD export format to tab-delimited TXT with a first-row header:
+# Qty | Barcode | Description | Price
+# Users can still deliberately customize the field order in Export Format.
 # -----------------------------------------------------------------------------
 p=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
 s=p.read_text()
@@ -51,6 +50,15 @@ s=s.replace(old,new,1)
 s=s.replace('Onhand Inventory 3.0.93','Onhand Inventory 3.0.94')
 p.write_text(s)
 
+# Exact standard TXT export contract requested by operator.
+p=Path('app/src/main/java/com/iceinventory/onhand/TabTextUtils.java')
+s=p.read_text()
+if 'private static final String DEFAULT_STRING="quantity,barcode,description,price";' not in s:
+    raise SystemExit('3.0.94 target missing: standard export field order')
+s=s.replace('// Quantity | Barcode | Description | Price.','// Qty | Barcode | Description | Price.',1)
+s=s.replace('if("quantity".equals(field))return "Quantity";','if("quantity".equals(field))return "Qty";',1)
+p.write_text(s)
+
 # Advance installable package version.
 p=Path('app/build.gradle')
 s=p.read_text().replace('versionCode 30093','versionCode 30094',1).replace("versionName '3.0.93'","versionName '3.0.94'",1)
@@ -62,8 +70,9 @@ p=Path('app/src/main/AndroidManifest.xml')
 s=p.read_text().replace('iCE Onhand 3.0.93','iCE Onhand 3.0.94')
 p.write_text(s)
 
-# Build-time regression checks for the new navigation and preserved safety.
+# Build-time regression checks for navigation, export contract and preserved safety.
 main=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java').read_text()
+tab=Path('app/src/main/java/com/iceinventory/onhand/TabTextUtils.java').read_text()
 checks={
     'Export starts with export choices':'exp.setOnClickListener(v->showExportScopeDialog())' in main,
     'Continue from format goes to destination dialog':'if(requestCode==REQ_EXPORT_FORMAT){\n            showExportDialog();' in main,
@@ -73,9 +82,13 @@ checks={
     'internet choice opens format':'pendingExportInternetOnly=true' in main and 'startExportFormatFlow();' in main,
     'destination dialog still has Downloads':'Save to Downloads' in main,
     'destination dialog still has Drive':'Save to Google Drive' in main,
+    'standard four-field order':'DEFAULT_STRING="quantity,barcode,description,price"' in tab,
+    'header first column is Qty':'if("quantity".equals(field))return "Qty";' in tab,
+    'tab delimiter is used':"b.append('\\t')" in tab,
+    'header row always emitted':'b.append("\\r\\n");' in tab,
     '3.0.93 fresh batch reset preserved':'db.resetSessionForReplacementImport(sessionId);' in main,
     '3.0.92 consolidation preserved':'Combine and Verify User Batches' in main,
 }
 missing=[k for k,v in checks.items() if not v]
 if missing:raise SystemExit('3.0.94 verification failed: '+', '.join(missing))
-print('Prepared iCE Onhand 3.0.94: Export choice first; Continue to File opens destination choices')
+print('Prepared iCE Onhand 3.0.94: direct export destination + standard TXT header Qty/Barcode/Description/Price')
