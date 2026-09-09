@@ -25,11 +25,14 @@ old='''    private boolean barcodesFlexibleMatch(String a,String b) {
 new='''    private boolean barcodesFlexibleMatch(String a,String b) {
         if(a==null||b==null)return false;
         String x=a.trim(),y=b.trim();
-        if(x.equals(y))return true;
-        if(x.length()<4||y.length()<4)return false;
-        boolean numeric=x.matches("\\\\d+")&&y.matches("\\\\d+");
-        List<String> xv=numeric?barcodeVariants(x):java.util.Collections.singletonList(x.toUpperCase(Locale.US));
-        List<String> yv=numeric?barcodeVariants(y):java.util.Collections.singletonList(y.toUpperCase(Locale.US));
+        if(x.equalsIgnoreCase(y))return true;
+        String nx=x.replaceAll("\\\\s+","").toUpperCase(Locale.US);
+        String ny=y.replaceAll("\\\\s+","").toUpperCase(Locale.US);
+        if(nx.equals(ny))return true;
+        if(nx.length()<4||ny.length()<4)return false;
+        boolean numeric=nx.matches("\\\\d+")&&ny.matches("\\\\d+");
+        List<String> xv=numeric?barcodeVariants(nx):java.util.Collections.singletonList(nx);
+        List<String> yv=numeric?barcodeVariants(ny):java.util.Collections.singletonList(ny);
         for(String p:xv)for(String q:yv) {
             if(p.length()<4||q.length()<4)continue;
             if(p.equals(q))return true;
@@ -58,8 +61,9 @@ p.write_text(m)
 
 main=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java').read_text()
 checks={
-    'four-character floor':'if(x.length()<4||y.length()<4)return false;' in main,
-    'alphanumeric matching':'Collections.singletonList(x.toUpperCase(Locale.US))' in main,
+    'four-character floor':'if(nx.length()<4||ny.length()<4)return false;' in main,
+    'embedded spaces ignored':'replaceAll("\\\\s+","")' in main,
+    'alphanumeric matching':'Collections.singletonList(nx)' in main,
     'contained partial match':'longer.contains(shorter)' in main,
     'unique automatic match':'if(flexible.size()==1)' in main,
     'ambiguous choice':'if(flexible.size()>1)' in main and 'showFlexibleBarcodeChoices(flexible)' in main,
