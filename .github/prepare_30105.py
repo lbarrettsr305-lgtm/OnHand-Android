@@ -8,7 +8,7 @@ exec(compile(base.read_text(),str(base),'exec'),{'__name__':'__main__','__file__
 p=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
 s=p.read_text()
 
-# Accept a scanner's partial numeric barcode when it is contained in a longer
+# Accept a scanner's partial barcode when it is contained in a longer
 # imported barcode. The existing caller already handles safety: one match is
 # selected automatically and multiple matches require the user to choose.
 old='''    private boolean barcodesFlexibleMatch(String a,String b) {
@@ -26,11 +26,12 @@ new='''    private boolean barcodesFlexibleMatch(String a,String b) {
         if(a==null||b==null)return false;
         String x=a.trim(),y=b.trim();
         if(x.equals(y))return true;
-        if(!x.matches("\\\\d+")||!y.matches("\\\\d+"))return false;
-        if(x.length()<8||y.length()<8)return false;
-        List<String> xv=barcodeVariants(x),yv=barcodeVariants(y);
+        if(x.length()<4||y.length()<4)return false;
+        boolean numeric=x.matches("\\\\d+")&&y.matches("\\\\d+");
+        List<String> xv=numeric?barcodeVariants(x):java.util.Collections.singletonList(x.toUpperCase(Locale.US));
+        List<String> yv=numeric?barcodeVariants(y):java.util.Collections.singletonList(y.toUpperCase(Locale.US));
         for(String p:xv)for(String q:yv) {
-            if(p.length()<8||q.length()<8)continue;
+            if(p.length()<4||q.length()<4)continue;
             if(p.equals(q))return true;
             String shorter=p.length()<=q.length()?p:q;
             String longer=p.length()>q.length()?p:q;
@@ -57,7 +58,8 @@ p.write_text(m)
 
 main=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java').read_text()
 checks={
-    'partial match floor':'if(x.length()<8||y.length()<8)return false;' in main,
+    'four-character floor':'if(x.length()<4||y.length()<4)return false;' in main,
+    'alphanumeric matching':'Collections.singletonList(x.toUpperCase(Locale.US))' in main,
     'contained partial match':'longer.contains(shorter)' in main,
     'unique automatic match':'if(flexible.size()==1)' in main,
     'ambiguous choice':'if(flexible.size()>1)' in main and 'showFlexibleBarcodeChoices(flexible)' in main,
