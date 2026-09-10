@@ -28,8 +28,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.107 location detail report and responsive highlighted row
-        run: python3 .github/prepare_30107.py
+      - name: Prepare and verify 3.0.108 Location Detail Excel export
+        run: python3 .github/prepare_30108.py
 
       - name: Restore permanent signing keystore
         env:
@@ -70,13 +70,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.107.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.108.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.107.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.108.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.107-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.107.apk
+          name: iCE-Onhand-Inventory-3.0.108-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.108.apk
           if-no-files-found: error
