@@ -135,8 +135,8 @@ addition='''    /** Audit verification workbook sorted highest-to-lowest by unit
             numberCell(x,"A"+n,r.quantity);
             textCell(x,"B"+n,clean(r.barcode),0);
             textCell(x,"C"+n,clean(r.description),0);
-            numberCell(x,"D"+n,auditPrice(r.price));
-            numberCell(x,"E"+n,r.quantity*auditPrice(r.price));
+            decimalCell(x,"D"+n,auditPrice(r.price));
+            decimalCell(x,"E"+n,r.quantity*auditPrice(r.price));
             x.append("</row>");
         }
         x.append("</sheetData><autoFilter ref=\\"A1:E").append(Math.max(1,n)).append("\\"/></worksheet>");
@@ -146,6 +146,21 @@ addition='''    /** Audit verification workbook sorted highest-to-lowest by unit
 '''+marker
 if marker not in x: raise SystemExit('3.0.109 target missing: audit writer marker')
 x=x.replace(marker,addition,1)
+x=x.replace(
+    '''    private static void numberCell(StringBuilder x,String ref,int value){
+        x.append("<c r=\\\"").append(ref).append("\\\"><v>").append(value).append("</v></c>");
+    }
+''',
+    '''    private static void numberCell(StringBuilder x,String ref,int value){
+        x.append("<c r=\\\"").append(ref).append("\\\"><v>").append(value).append("</v></c>");
+    }
+
+    private static void decimalCell(StringBuilder x,String ref,double value){
+        x.append("<c r=\\\"").append(ref).append("\\\"><v>").append(String.format(Locale.US,"%.2f",value)).append("</v></c>");
+    }
+''',
+    1)
+if 'private static void decimalCell' not in x: raise SystemExit('3.0.109 target missing: decimal cell writer')
 p.write_text(x)
 
 p=Path('app/build.gradle')
