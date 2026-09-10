@@ -43,7 +43,11 @@ buttons='''        final AlertDialog[] exportDialog=new AlertDialog[1];
         exportDialog[0].show();'''
 s=s[:start]+buttons+s[end:]
 
-marker='''    private void showExportScopeDialog(){'''
+marker_text='private void showExportScopeDialog'
+marker_pos=s.find(marker_text)
+if marker_pos<0: raise SystemExit('3.0.110 target missing: export method marker')
+marker_start=s.rfind('\n',0,marker_pos)+1
+marker=s[marker_start:marker_pos]+marker_text
 helpers='''    private void addExportSection(LinearLayout panel,String title){
         TextView heading=new TextView(this);
         heading.setText(title);
@@ -83,8 +87,7 @@ helpers='''    private void addExportSection(LinearLayout panel,String title){
     }
 
 '''+marker
-if marker not in s: raise SystemExit('3.0.110 target missing: export method marker')
-s=s.replace(marker,helpers,1)
+s=s[:marker_start]+helpers+s[marker_start+len(marker):]
 
 # Audit filenames now begin with the inventory/session name, never the user name.
 old='''    private String auditExportFileName(String name) {
