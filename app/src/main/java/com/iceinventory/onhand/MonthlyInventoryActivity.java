@@ -53,13 +53,16 @@ public final class MonthlyInventoryActivity extends Activity {
     @Override public void onCreate(Bundle state){
         super.onCreate(state);
         ScrollView scroll=new ScrollView(this);LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(16),dp(16),dp(16),dp(24));root.setBackgroundColor(Color.rgb(8,24,27));scroll.addView(root);
-        root.addView(text("Monthly POS Inventory",25,Color.rgb(255,215,0)));
+        root.addView(text("Petrosoft Monthly Inventory",25,Color.rgb(255,215,0)));
         TextView profile=text("POS FORMAT PROFILE\nPetrosoft / CStoreOffice",16,Color.WHITE);profile.setPadding(0,dp(8),0,dp(10));root.addView(profile);
         customer=input("Customer name", "CHEV2620");root.addView(customer);
         date=input("Inventory date (MM-DD-YYYY)",new SimpleDateFormat("MM-dd-yyyy",Locale.US).format(new Date()));root.addView(date);
-        Button source=button("1. Select Petrosoft Items / Price Management Excel");source.setOnClickListener(v->pickSource());root.addView(source,params(58));
+        root.addView(section("IMPORT CLIENT FILE"));
+        Button source=button("1. Import Petrosoft Price Management Excel");source.setOnClickListener(v->pickSource());root.addView(source,params(58));
+        root.addView(section("PREPARE COUNT FILES"));
         saveMaster=button("2. Export Query Master Excel");saveMaster.setOnClickListener(v->create(SAVE_MASTER,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",base()+" MASTER-"+day()+".xlsx"));root.addView(saveMaster,params(54));
         saveOnHand=button("3. Export OnHand Import TXT (Quantity 0)");saveOnHand.setOnClickListener(v->create(SAVE_ONHAND,"text/plain","ONHAND "+base()+" MASTER-"+day()+".txt"));root.addView(saveOnHand,params(54));
+        root.addView(section("AFTER PHYSICAL COUNT — EXPORT"));
         chooseCounts=button("4. Select All User Count Files");chooseCounts.setOnClickListener(v->pickCounts());root.addView(chooseCounts,params(58));
         saveCombined=button("5. Export Verified Combined TXT");saveCombined.setOnClickListener(v->create(SAVE_COMBINED,"text/plain",base()+" ALL-INVENTORY-"+day()+".txt"));root.addView(saveCombined,params(54));
         saveClient=button("6. Export Petrosoft Client Excel");saveClient.setOnClickListener(v->create(SAVE_CLIENT,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",base()+" INVENTORY-"+day()+".xlsx"));root.addView(saveClient,params(58));
@@ -150,6 +153,7 @@ public final class MonthlyInventoryActivity extends Activity {
     private EditText input(String hint,String value){EditText e=new EditText(this);e.setHint(hint);e.setText(value);e.setTextColor(Color.WHITE);e.setHintTextColor(Color.LTGRAY);e.setSingleLine(true);e.setPadding(dp(10),0,dp(10),0);LinearLayout.LayoutParams p=params(54);p.setMargins(0,0,0,dp(8));e.setLayoutParams(p);return e;}
     private Button button(String s){Button b=new Button(this);b.setText(s);b.setTextSize(15);b.setAllCaps(false);b.setGravity(Gravity.CENTER);return b;}
     private TextView text(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setGravity(Gravity.CENTER_VERTICAL);return t;}
+    private TextView section(String s){TextView t=text(s,14,Color.rgb(255,193,7));t.setPadding(dp(2),dp(12),dp(2),dp(6));return t;}
     private LinearLayout.LayoutParams params(int h){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(h));p.setMargins(0,0,0,dp(8));return p;}
     private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
 }
