@@ -16,11 +16,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android SDK 36
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
@@ -28,8 +23,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.111 report-title-first audit filenames
-        run: python3 .github/prepare_30111.py
+      - name: Prepare and verify 3.0.112 monthly POS workflow
+        run: python3 .github/prepare_30112.py
 
       - name: Restore permanent signing keystore
         env:
@@ -70,13 +65,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.111.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.112.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.111.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.112.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.111-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.111.apk
+          name: iCE-Onhand-Inventory-3.0.112-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.112.apk
           if-no-files-found: error
