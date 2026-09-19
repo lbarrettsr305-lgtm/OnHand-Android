@@ -6,11 +6,6 @@ exec(compile(base.read_text(),str(base),'exec'),{'__name__':'__main__','__file__
 
 p=Path('app/build.gradle')
 g=p.read_text().replace('versionCode 30119','versionCode 30120',1).replace("versionName '3.0.119'","versionName '3.0.120'",1)
-dependency="    implementation 'androidx.core:core:1.15.0'\n"
-if dependency not in g:
-    marker="dependencies {\n"
-    if marker not in g: raise SystemExit('3.0.120 target missing: dependencies')
-    g=g.replace(marker,marker+dependency,1)
 if 'versionCode 30120' not in g or "versionName '3.0.120'" not in g: raise SystemExit('3.0.120 Gradle target missing')
 p.write_text(g)
 
