@@ -42,11 +42,13 @@ public final class MonthlyInventoryActivity extends Activity {
     private final ArrayList<MonthlyClientXlsxWriter.ClientRow> clientRows=new ArrayList<>();
     private EditText customer,date;
     private TextView status;
-    private Button saveMaster,saveOnHand,chooseCounts,saveCombined,saveClient,saveAudit;
+    public static final String EXTRA_SESSION_ID="monthly_session_id",EXTRA_SESSION_NAME="monthly_session_name";
+    private Button saveMaster,saveOnHand,loadDevice,shareOnHand,chooseCounts,saveCombined,saveClient,saveAudit;
+    private Uri onHandUri;
     private String sourceName="";
-    private int sourceRows,excludedLottery,duplicates;
+    private int receivedRows,sourceRows,blankGtin,blankBarcode,blankCategory,excludedLottery,duplicates,aliasRows;
     private long sourceTotal,combinedTotal,clientTotal;
-    private boolean sourceReady,countsReady,validated;
+    private boolean sourceReady,masterCreated,onHandCreated,deviceLoaded,countsReady,validated;
 
     private static final class CountFile {String name="";int rows;long quantity;}
 
@@ -62,15 +64,19 @@ public final class MonthlyInventoryActivity extends Activity {
         root.addView(section("PREPARE COUNT FILES"));
         saveMaster=button("2. Export Query Master Excel");saveMaster.setOnClickListener(v->create(SAVE_MASTER,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",base()+" MASTER-"+day()+".xlsx"));root.addView(saveMaster,params(54));
         saveOnHand=button("3. Export OnHand Import TXT (Quantity 0)");saveOnHand.setOnClickListener(v->create(SAVE_ONHAND,"text/plain","ONHAND "+base()+" MASTER-"+day()+".txt"));root.addView(saveOnHand,params(54));
+        loadDevice=button("4. Load & Verify on This Device");loadDevice.setOnClickListener(v->confirmLoadDevice());root.addView(loadDevice,params(54));
+        shareOnHand=button("5. Share Verified OnHand Count File");shareOnHand.setOnClickListener(v->shareOnHand());root.addView(shareOnHand,params(54));
         root.addView(section("AFTER PHYSICAL COUNT — EXPORT"));
-        chooseCounts=button("4. Select All User Count Files");chooseCounts.setOnClickListener(v->pickCounts());root.addView(chooseCounts,params(58));
-        saveCombined=button("5. Export Verified Combined TXT");saveCombined.setOnClickListener(v->create(SAVE_COMBINED,"text/plain",base()+" ALL-INVENTORY-"+day()+".txt"));root.addView(saveCombined,params(54));
-        saveClient=button("6. Export Petrosoft Client Excel");saveClient.setOnClickListener(v->create(SAVE_CLIENT,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",base()+" INVENTORY-"+day()+".xlsx"));root.addView(saveClient,params(58));
+        chooseCounts=button("6. Select All User Count Files");chooseCounts.setOnClickListener(v->pickCounts());root.addView(chooseCounts,params(58));
+        saveCombined=button("7. Export Verified Combined TXT");saveCombined.setOnClickListener(v->create(SAVE_COMBINED,"text/plain",base()+" ALL-INVENTORY-"+day()+".txt"));root.addView(saveCombined,params(54));
+        saveClient=button("8. Export Petrosoft Client Excel");saveClient.setOnClickListener(v->create(SAVE_CLIENT,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",base()+" INVENTORY-"+day()+".xlsx"));root.addView(saveClient,params(58));
         saveAudit=button("Export Monthly Verification Report");saveAudit.setOnClickListener(v->create(SAVE_AUDIT,"text/plain",base()+" MONTHLY VERIFICATION-"+day()+".txt"));root.addView(saveAudit,params(54));
         status=text("Start by selecting the Petrosoft Items / Price Management Excel file.",16,Color.WHITE);status.setPadding(0,dp(16),0,dp(16));root.addView(status);
         Button back=button("Back to Inventory");back.setOnClickListener(v->finish());root.addView(back,params(52));
-        setContentView(scroll);setEnabledState();
+        setContentView(scroll);setEnabledState();Uri incoming=incomingSource(getIntent());if(incoming!=null)status.post(()->{try{loadPetrosoft(incoming);}catch(Exception e){fail(e.getMessage()==null?e.toString():e.getMessage());}});
     }
+
+    private Uri incomingSource(Intent intent){if(intent==null)return null;Uri uri=intent.getData();if(uri==null&&Intent.ACTION_SEND.equals(intent.getAction())){if(android.os.Build.VERSION.SDK_INT>=33)uri=intent.getParcelableExtra(Intent.EXTRA_STREAM,Uri.class);else uri=intent.getParcelableExtra(Intent.EXTRA_STREAM);}return uri;}
 
     private void pickSource(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");startActivityForResult(i,PICK_SOURCE);}
     private void pickCounts(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("text/*");i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(i,PICK_COUNTS);}
@@ -81,7 +87,7 @@ public final class MonthlyInventoryActivity extends Activity {
     }catch(Exception e){fail(e.getMessage()==null?e.toString():e.getMessage());}}
 
     private void loadPetrosoft(Uri uri)throws Exception{
-        if(uri==null)return;sourceName=displayName(uri);products.clear();combined.clear();countFiles.clear();unmatched.clear();clientRows.clear();sourceRows=excludedLottery=duplicates=0;sourceTotal=combinedTotal=clientTotal=0;countsReady=validated=false;
+        if(uri==null)return;sourceName=displayName(uri);products.clear();combined.clear();countFiles.clear();unmatched.clear();clientRows.clear();receivedRows=sourceRows=blankGtin=blankBarcode=blankCategory=excludedLottery=duplicates=aliasRows=0;sourceTotal=combinedTotal=clientTotal=0;masterCreated=onHandCreated=deviceLoaded=countsReady=validated=false;onHandUri=null;
         InputStream in=getContentResolver().openInputStream(uri);if(in==null)throw new Exception("Could not open the Petrosoft Excel file");
         List<Map<Integer,String>> rows;try(InputStream use=in){rows=XlsxTableReader.readFirstSheet(use);}
         int header=-1;Map<String,Integer> columns=null;
@@ -89,11 +95,12 @@ public final class MonthlyInventoryActivity extends Activity {
         if(header<0||columns==null)throw new Exception("This file does not match the Petrosoft Items / Price Management format");
         String invDate=clientDate();
         for(int i=header+1;i<rows.size();i++){
-            Map<Integer,String> r=rows.get(i);String upc=get(r,columns,"UPCA12DIGITS");String gtin=get(r,columns,"GTIN");if(upc.isEmpty()||gtin.isEmpty())continue;
-            String cat=plainNumber(get(r,columns,"CAT"));if(cat.isEmpty())continue;if("9".equals(cat)){excludedLottery++;continue;}
+            Map<Integer,String> r=rows.get(i);String upc=get(r,columns,"UPCA12DIGITS");String gtin=get(r,columns,"GTIN");if(upc.isEmpty()&&gtin.isEmpty())continue;receivedRows++;
+            if(gtin.isEmpty()){blankGtin++;continue;}if(upc.isEmpty()){blankBarcode++;continue;}
+            String cat=plainNumber(get(r,columns,"CAT"));if(cat.isEmpty()){blankCategory++;continue;}if("9".equals(cat)){excludedLottery++;continue;}
             MonthlyClientXlsxWriter.Product p=product(upc,gtin,cat,get(r,columns,"CURRENTRETAIL"),first(get(r,columns,"CRDESCRIPTION"),get(r,columns,"ITEMDESCRIPTION")),get(r,columns,"COST"),invDate,get(r,columns,"CATEGORYNAME"));
             addProduct(p);
-            String upce=get(r,columns,"UPCE8DIGITS");if(!upce.isEmpty()&&!"00000000".equals(upce)){MonthlyClientXlsxWriter.Product alias=product(upce,gtin,cat,p.retail,p.description,p.cost,invDate,p.categoryName);addProduct(alias);}
+            String upce=get(r,columns,"UPCE8DIGITS");if(!upce.isEmpty()&&!"00000000".equals(upce)){MonthlyClientXlsxWriter.Product alias=product(upce,gtin,cat,p.retail,p.description,p.cost,invDate,p.categoryName);int before=products.size();addProduct(alias);if(products.size()>before)aliasRows++;}
             sourceRows++;
         }
         if(products.isEmpty())throw new Exception("No countable Petrosoft products were found");sourceReady=true;showSource();setEnabledState();
@@ -122,20 +129,24 @@ public final class MonthlyInventoryActivity extends Activity {
     }
 
     private void write(int request,Uri uri)throws Exception{OutputStream out=getContentResolver().openOutputStream(uri);if(out==null)throw new Exception("Could not create output file");try(OutputStream use=out){
-        if(request==SAVE_MASTER)MonthlyClientXlsxWriter.writeMaster(use,new ArrayList<>(products.values()));
-        else if(request==SAVE_ONHAND)use.write(onHandText().getBytes(StandardCharsets.UTF_8));
+        if(request==SAVE_MASTER){MonthlyClientXlsxWriter.writeMaster(use,new ArrayList<>(products.values()));masterCreated=true;}
+        else if(request==SAVE_ONHAND){use.write(onHandText().getBytes(StandardCharsets.UTF_8));onHandUri=uri;onHandCreated=true;}
         else if(request==SAVE_COMBINED)use.write(combinedText().getBytes(StandardCharsets.UTF_8));
         else if(request==SAVE_CLIENT){if(!validated)throw new Exception("Client export is blocked until validation passes");MonthlyClientXlsxWriter.writeClient(use,clientRows);}
         else if(request==SAVE_AUDIT)use.write(auditText().getBytes(StandardCharsets.UTF_8));
-    }Toast.makeText(this,"File exported successfully",Toast.LENGTH_LONG).show();}
+    }Toast.makeText(this,"File created successfully",Toast.LENGTH_LONG).show();showProgress();setEnabledState();}
 
     private String onHandText(){StringBuilder b=new StringBuilder();for(MonthlyClientXlsxWriter.Product p:products.values())b.append("0\t").append(tab(p.upc)).append('\t').append(tab(p.description)).append("\t$").append(money(p.retail)).append("\r\n");return b.toString();}
     private String combinedText(){StringBuilder b=new StringBuilder();for(Map.Entry<String,Long> e:combined.entrySet()){MonthlyClientXlsxWriter.Product p=products.get(e.getKey());b.append(e.getValue()).append('\t').append(tab(e.getKey())).append('\t').append(tab(p==null?"":p.description)).append("\t$").append(money(p==null?"":p.retail)).append("\r\n");}return b.toString();}
     private String auditText(){StringBuilder b=new StringBuilder("ICE ONHAND MONTHLY POS VERIFICATION\r\n");b.append("POS PROFILE\tPETROSOFT / CSTOREOFFICE\r\nCUSTOMER\t").append(tab(base())).append("\r\nINVENTORY DATE\t").append(clientDate()).append("\r\nSOURCE FILE\t").append(tab(sourceName)).append("\r\nSTATUS\t").append(validated?"PASS - VERIFIED":"FAIL - CLIENT EXPORT BLOCKED").append("\r\n\r\nUSER FILES\t").append(countFiles.size()).append("\r\n");for(CountFile f:countFiles)b.append(tab(f.name)).append('\t').append(f.rows).append(" rows\t").append(f.quantity).append(" units\r\n");b.append("\r\nMACHINE TOTAL\t").append(sourceTotal).append("\r\nCOMBINED TOTAL\t").append(combinedTotal).append("\r\nCLIENT EXCEL TOTAL\t").append(clientTotal).append("\r\nUNMATCHED BARCODES\t").append(unmatched.size()).append("\r\nFINAL HEADERS\tGTIN | QUANTITY | CATEGORY_ID | RETAIL | DESCRIPTION | COST | DATE | TIME | SECTION\r\n");for(String x:unmatched)b.append("UNMATCHED\t").append(tab(x)).append("\r\n");return b.toString();}
 
-    private void showSource(){status.setText("PETROSOFT SOURCE READY\n\nSource: "+sourceName+"\nCountable source products: "+sourceRows+"\nMaster / OnHand barcode rows: "+products.size()+"\nLottery category 9 excluded: "+excludedLottery+"\nDuplicate barcodes removed: "+duplicates+"\n\nExport the Master and OnHand files, then conduct the physical inventory.");status.setTextColor(Color.rgb(180,235,255));}
+    private void showSource(){showProgress();status.setTextColor(Color.rgb(180,235,255));}
     private void showValidation(){StringBuilder b=new StringBuilder();b.append(validated?"PASS — CLIENT REPORT READY":"FAILED VALIDATION — CLIENT EXPORT BLOCKED").append("\n\nUser count files: ").append(countFiles.size()).append("\nMachine total: ").append(sourceTotal).append("\nCombined total: ").append(combinedTotal).append("\nClient Excel total: ").append(clientTotal).append("\nCombined unique barcodes: ").append(combined.size()).append("\nFinal GTIN rows: ").append(clientRows.size()).append("\nUnmatched barcodes: ").append(unmatched.size());if(!unmatched.isEmpty()){b.append("\n\nUNMATCHED:");for(String x:unmatched)b.append("\n").append(x);}b.append("\n\nLocked client columns:\nGTIN, QUANTITY, CATEGORY_ID, RETAIL, DESCRIPTION, COST, DATE, TIME, SECTION");status.setText(b.toString());status.setTextColor(validated?Color.rgb(120,255,140):Color.rgb(255,130,130));}
-    private void setEnabledState(){saveMaster.setEnabled(sourceReady);saveOnHand.setEnabled(sourceReady);chooseCounts.setEnabled(sourceReady);saveCombined.setEnabled(countsReady&&validated);saveClient.setEnabled(countsReady&&validated);saveAudit.setEnabled(countsReady);}
+    private void showProgress(){StringBuilder b=new StringBuilder();b.append(sourceReady?"✓ PETROSOFT FILE IMPORTED AND VALIDATED":"○ IMPORT PETROSOFT PRICE MANAGEMENT");if(sourceReady)b.append("\n  File: ").append(sourceName).append("\n  Rows received: ").append(receivedRows).append("\n  Valid source products: ").append(sourceRows).append("\n  Blank GTIN excluded: ").append(blankGtin).append("\n  Blank barcode excluded: ").append(blankBarcode).append("\n  Blank category excluded: ").append(blankCategory).append("\n  Lottery category 9 excluded: ").append(excludedLottery).append("\n  Duplicate barcodes removed: ").append(duplicates).append("\n  Eight-digit aliases added: ").append(aliasRows).append("\n  Final barcode rows: ").append(products.size());b.append(masterCreated?"\n\n✓ MASTER FILE CREATED":"\n\n○ CREATE MASTER FILE");b.append(onHandCreated?"\n✓ ONHAND TAB-DELIMITED FILE CREATED":"\n○ CREATE ONHAND TAB-DELIMITED FILE");b.append(deviceLoaded?"\n✓ LOADED AND VERIFIED ON THIS DEVICE":"\n○ LOAD AND VERIFY ON THIS DEVICE");b.append(onHandCreated?"\n○ SHARE VERIFIED COUNT FILE WITH USERS":"");status.setText(b.toString());}
+    private void confirmLoadDevice(){new android.app.AlertDialog.Builder(this).setTitle("Load OnHand Count File").setMessage("Create a new inventory on this device from the verified Petrosoft data? All quantities will start at zero.").setPositiveButton("Load & Verify",(d,w)->loadOnDevice()).setNegativeButton("Cancel",null).show();}
+    private void loadOnDevice(){InventoryDb db=new InventoryDb(this);long id=-1;boolean tx=false;try{id=db.createSession(base()+" "+day());db.beginInventoryTransaction();tx=true;for(MonthlyClientXlsxWriter.Product p:products.values())db.addOrIncrement(id,p.upc,p.description,money(p.retail),0,"Main");db.setInventoryTransactionSuccessful();db.endInventoryTransaction();tx=false;List<InventoryDb.Row> rows=db.items(id);long qty=0;for(InventoryDb.Row r:rows)qty+=r.quantity;if(rows.size()!=products.size()||qty!=0)throw new Exception("Device verification failed: expected "+products.size()+" zero-quantity barcodes, loaded "+rows.size()+" rows and "+qty+" units");deviceLoaded=true;Intent result=new Intent();result.putExtra(EXTRA_SESSION_ID,id);result.putExtra(EXTRA_SESSION_NAME,base()+" "+day());setResult(RESULT_OK,result);Toast.makeText(this,"Loaded and verified "+rows.size()+" barcodes at quantity zero",Toast.LENGTH_LONG).show();showProgress();setEnabledState();}catch(Exception e){if(tx)try{db.endInventoryTransaction();}catch(Exception ignored){}fail("Load verification failed: "+e.getMessage());}finally{db.close();}}
+    private void shareOnHand(){if(onHandUri==null){fail("Create the OnHand tab-delimited file first");return;}Intent i=new Intent(Intent.ACTION_SEND);i.setType("text/plain");i.putExtra(Intent.EXTRA_STREAM,onHandUri);i.putExtra(Intent.EXTRA_SUBJECT,"Verified OnHand count file — "+base());i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivity(Intent.createChooser(i,"Share OnHand count file"));}
+    private void setEnabledState(){saveMaster.setEnabled(sourceReady&&!masterCreated);saveOnHand.setEnabled(sourceReady&&masterCreated&&!onHandCreated);loadDevice.setEnabled(onHandCreated&&!deviceLoaded);shareOnHand.setEnabled(onHandCreated&&deviceLoaded&&onHandUri!=null);chooseCounts.setEnabled(sourceReady);saveCombined.setEnabled(countsReady&&validated);saveClient.setEnabled(countsReady&&validated);saveAudit.setEnabled(countsReady);}
     private Map<String,Integer> headerMap(Map<Integer,String> row){HashMap<String,Integer> m=new HashMap<>();for(Map.Entry<Integer,String> e:row.entrySet())m.put(norm(e.getValue()),e.getKey());return m;}
     private String get(Map<Integer,String> row,Map<String,Integer> cols,String name){Integer c=cols.get(name);return c==null?"":clean(row.get(c));}
     private String norm(String s){return clean(s).toUpperCase(Locale.US).replaceAll("[^A-Z0-9]","");}
