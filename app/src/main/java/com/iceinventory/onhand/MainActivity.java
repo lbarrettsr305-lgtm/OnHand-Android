@@ -32,6 +32,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -87,6 +88,7 @@ public class MainActivity extends Activity implements InventoryAdapter.Listener 
     private Spinner location;
     private TextView titleSession;
     private TextView summary;
+    private TextView emptyInventoryHint;
     private ListView list;
     private InventoryAdapter adapter;
 
@@ -295,13 +297,20 @@ public class MainActivity extends Activity implements InventoryAdapter.Listener 
         searchBar.addView(filter,flp);
         root.addView(searchBar);
 
+        FrameLayout listArea=new FrameLayout(this);
         list=new ListView(this);
         list.setBackgroundColor(darkGreen());
         list.setDividerColor(gold());
         list.setDividerHeight(dp(1));
         adapter=new InventoryAdapter(this,this);
         list.setAdapter(adapter);
-        root.addView(list,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
+        listArea.addView(list,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+        emptyInventoryHint=text("1. START A NEW INVENTORY\nPRESS IMPORT BELOW",20,Color.WHITE,true);
+        emptyInventoryHint.setGravity(Gravity.CENTER);
+        emptyInventoryHint.setBackgroundColor(darkGreen());
+        emptyInventoryHint.setPadding(dp(18),dp(18),dp(18),dp(18));
+        listArea.addView(emptyInventoryHint,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+        root.addView(listArea,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,0,1));
 
         LinearLayout io=new LinearLayout(this);io.setOrientation(LinearLayout.HORIZONTAL);io.setPadding(0,dp(4),0,0);
         Button imp=button("⬇ Import CSV",1);imp.setTypeface(Typeface.DEFAULT,Typeface.BOLD);imp.setOnClickListener(v->importCsv());
@@ -494,6 +503,8 @@ public class MainActivity extends Activity implements InventoryAdapter.Listener 
         allRows.clear();allRows.addAll(db.items(sessionId));
         int units=0;for(InventoryDb.Row r:allRows)units+=r.quantity;
         summary.setText(allRows.size()+" item lines  •  "+units+" total units");
+        if(emptyInventoryHint!=null)emptyInventoryHint.setVisibility(allRows.isEmpty()?View.VISIBLE:View.GONE);
+        if(list!=null)list.setVisibility(allRows.isEmpty()?View.GONE:View.VISIBLE);
         applyFilter();
     }
 
