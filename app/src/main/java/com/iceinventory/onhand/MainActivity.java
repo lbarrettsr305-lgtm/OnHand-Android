@@ -131,6 +131,8 @@ public class MainActivity extends Activity implements InventoryAdapter.Listener 
             sessionId=sessions.get(0).id;
             sessionName=sessions.get(0).name;
         }
+        long requestedSession=getIntent()==null?-1L:getIntent().getLongExtra(MonthlyInventoryActivity.EXTRA_SESSION_ID,-1L);
+        if(requestedSession>0)for(InventoryDb.Session s:sessions)if(s.id==requestedSession){sessionId=s.id;sessionName=s.name;break;}
         buildUi();
         refreshLocations();
         refreshList();
