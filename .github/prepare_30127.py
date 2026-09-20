@@ -14,8 +14,8 @@ old='String[] choices={"Petrosoft Monthly Inventory","Standard TXT Inventory"};'
 new='String[] choices={"Petrosoft Monthly Inventory","LiqPOS Inventory","Standard TXT Inventory"};'
 if old not in s: raise SystemExit('3.0.127 target missing: import templates')
 s=s.replace(old,new,1)
-old='if(which==0)startActivity(new Intent(this,MonthlyInventoryActivity.class));\n                    else startImportFormatFlow();'
-new='if(which==0)startActivity(new Intent(this,MonthlyInventoryActivity.class));\n                    else if(which==1)startActivity(new Intent(this,LiqPosInventoryActivity.class));\n                    else startImportFormatFlow();'
+old='if(which==0)startActivityForResult(new Intent(this,MonthlyInventoryActivity.class),REQ_MONTHLY_INVENTORY);\n                    else startImportFormatFlow();'
+new='if(which==0)startActivityForResult(new Intent(this,MonthlyInventoryActivity.class),REQ_MONTHLY_INVENTORY);\n                    else if(which==1)startActivity(new Intent(this,LiqPosInventoryActivity.class));\n                    else startImportFormatFlow();'
 if old not in s: raise SystemExit('3.0.127 target missing: import choice handler')
 s=s.replace(old,new,1)
 old='private boolean monthlyWorkflowMode;'
