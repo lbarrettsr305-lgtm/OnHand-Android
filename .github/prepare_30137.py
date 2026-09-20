@@ -114,7 +114,7 @@ main=p.read_text()
 checks={
  'version':'Onhand Inventory 3.0.137',
  'count role explicit':'else if(ROLE_COUNT_USER.equals(role))',
- 'count no-pin block':'This phone is a COUNT USER and cannot create or replace the Master PIN.',
+ 'count no-pin block':'This is an older or unprotected count file.',
  'count pin unlock':'unlockMasterWithPin(next);',
  'master role refresh':'refreshOperatorStatus();',
  'master role lock':'Master Device Required',
