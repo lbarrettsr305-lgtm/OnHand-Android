@@ -31,8 +31,8 @@ replacement='''    private void ensureMasterPin(Runnable next){
         } else if(ROLE_COUNT_USER.equals(role)){
             if(existing.isEmpty()){
                 new AlertDialog.Builder(this)
-                        .setTitle("Master PIN Required")
-                        .setMessage("This phone is a COUNT USER and cannot create or replace the Master PIN. Use the original Master phone, or load a protected working file shared from the Master phone.")
+                        .setTitle("Protected Master PIN Missing")
+                        .setMessage("This is an older or unprotected count file. To make the Audit Manager phone MASTER: on the source/master phone create the 4-digit Master PIN and share the protected OnHand working file again. Import that protected file on this phone, then tap MAKE THIS PHONE MASTER and enter the PIN.")
                         .setPositiveButton("OK",null).show();
                 return;
             }
@@ -50,6 +50,26 @@ replacement='''    private void ensureMasterPin(Runnable next){
     private void unlockMasterWithPin(){'''
 s,n=re.subn(pat,replacement,s,count=1,flags=re.S)
 if n!=1: raise SystemExit('3.0.137 target missing: ensureMasterPin block')
+
+
+# Make the Count User action explicit for the onsite Audit Manager.
+old_button='''Button masterUserButton=button(masterDevice?"CHANGE MASTER PIN":"TRANSFER / UNLOCK MASTER",2);'''
+new_button='''Button masterUserButton=button(masterDevice?"CHANGE MASTER PIN":"MAKE THIS PHONE MASTER — PIN REQUIRED",2);'''
+if old_button not in s: raise SystemExit('3.0.137 target missing: master action label')
+s=s.replace(old_button,new_button,1)
+
+# Never create/share a monthly working count file without a protected Master PIN.
+p_month=Path('app/src/main/java/com/iceinventory/onhand/MonthlyInventoryActivity.java')
+m=p_month.read_text()
+old_write='''        else if(request==SAVE_ONHAND){use.write(onHandText().getBytes(StandardCharsets.UTF_8));onHandUri=uri;onHandCreated=true;showImportSummary();}'''
+new_write='''        else if(request==SAVE_ONHAND){String h=getSharedPreferences("onhand_settings",MODE_PRIVATE).getString("master_pin_hash","");if(h.isEmpty())throw new Exception("Set the 4-digit Master PIN before creating the working count file.");use.write(onHandText().getBytes(StandardCharsets.UTF_8));onHandUri=uri;onHandCreated=true;showImportSummary();}'''
+if old_write not in m: raise SystemExit('3.0.137 target missing: monthly SAVE_ONHAND')
+m=m.replace(old_write,new_write,1)
+old_share='''    private void shareOnHand(){if(onHandUri==null){fail("Create the OnHand tab-delimited file first");return;}Intent i=new Intent(Intent.ACTION_SEND);'''
+new_share='''    private void shareOnHand(){String h=getSharedPreferences("onhand_settings",MODE_PRIVATE).getString("master_pin_hash","");if(h.isEmpty()){fail("Master PIN is required before sharing. Create the protected working file again after setting the 4-digit Master PIN.");return;}if(onHandUri==null){fail("Create the OnHand tab-delimited file first");return;}Intent i=new Intent(Intent.ACTION_SEND);'''
+if old_share not in m: raise SystemExit('3.0.137 target missing: monthly shareOnHand')
+m=m.replace(old_share,new_share,1)
+p_month.write_text(m)
 
 # The yellow main-screen title is the store/project name, not the imported file name.
 # Keep the full source filename separately (existing last_import_filename preference),
@@ -99,8 +119,15 @@ checks={
  'master role refresh':'refreshOperatorStatus();',
  'master role lock':'Master Device Required',
  'store title parser':'private String projectNameFromImportedFile(String fileName)',
- 'store title not filename':'String inventoryName=projectNameFromImportedFile(selectedName);'
+ 'store title not filename':'String inventoryName=projectNameFromImportedFile(selectedName);',
+ 'audit manager button':'MAKE THIS PHONE MASTER — PIN REQUIRED',
+ 'legacy recovery':'This is an older or unprotected count file.',
+ 'protected monthly file':'Set the 4-digit Master PIN before creating the working count file.',
+ 'protected share':'Master PIN is required before sharing.'
 }
-missing=[k for k,v in checks.items() if v not in main]
+alltext=main+'\n'+Path('app/src/main/java/com/iceinventory/onhand/MonthlyInventoryActivity.java').read_text()
+missing=[k for k,v in checks.items() if v not in alltext]
 if missing: raise SystemExit('3.0.137 verification failed: '+', '.join(missing))
-print('Prepared iCE Onhand 3.0.137: Master PIN hard lock + store title separated from source filename')
+print('Prepared iCE Onhand 3.0.137: Audit Manager Master transfer + protected working-file PIN + store title fix')
+raise SystemExit(0)
+
