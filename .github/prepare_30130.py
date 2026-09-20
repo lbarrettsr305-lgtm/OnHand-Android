@@ -10,13 +10,15 @@ p.write_text(g)
 
 p=Path('app/src/main/java/com/iceinventory/onhand/MainActivity.java')
 s=p.read_text().replace('Onhand Inventory 3.0.129','Onhand Inventory 3.0.130',1)
-anchor='''        new AlertDialog.Builder(this).setTitle("Options").setView(box).setPositiveButton("Done",null).show();'''
+needle='new AlertDialog.Builder(this).setTitle("Options")'
+pos=s.find(needle)
+if pos<0: raise SystemExit('3.0.130 Main Options dialog missing')
+line_start=s.rfind('\\n',0,pos)+1
 addition='''        Button help=button("❓ Help / Instructions",0);
         help.setOnClickListener(v->startActivity(new Intent(this,HelpActivity.class)));
         box.addView(help,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(52)));
-'''+anchor
-if anchor not in s: raise SystemExit('3.0.130 Main Help anchor missing')
-s=s.replace(anchor,addition,1)
+'''
+s=s[:line_start]+addition+s[line_start:]
 p.write_text(s)
 
 p=Path('app/src/main/java/com/iceinventory/onhand/MonthlyInventoryActivity.java')
