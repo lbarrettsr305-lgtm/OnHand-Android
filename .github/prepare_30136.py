@@ -19,26 +19,12 @@ s=s.replace('Onhand Inventory 3.0.135','Onhand Inventory 3.0.136',1)
 
 # A fresh/empty phone should never look like a real inventory is active.
 s=s.replace('private String sessionName="Default Inventory";','private String sessionName="NO ACTIVE INVENTORY";',1)
-s=s.replace('''        if(sessions.isEmpty()) {
-            sessionId=db.createSession("Default Inventory");
-            sessionName="Default Inventory";
-        } else {
-            sessionId=sessions.get(0).id;
-            sessionName=sessions.get(0).name;
-        }
-        long requestedSession=getIntent()==null?-1L:getIntent().getLongExtra(MonthlyInventoryActivity.EXTRA_SESSION_ID,-1L);
-        if(requestedSession>0)for(InventoryDb.Session s:sessions)if(s.id==requestedSession){sessionId=s.id;sessionName=s.name;break;}
-        buildUi();''','''        if(sessions.isEmpty()) {
-            sessionId=db.createSession("NO ACTIVE INVENTORY");
-            sessionName="NO ACTIVE INVENTORY";
-        } else {
-            sessionId=sessions.get(0).id;
-            sessionName=sessions.get(0).name;
-        }
-        long requestedSession=getIntent()==null?-1L:getIntent().getLongExtra(MonthlyInventoryActivity.EXTRA_SESSION_ID,-1L);
-        if(requestedSession>0)for(InventoryDb.Session s:sessions)if(s.id==requestedSession){sessionId=s.id;sessionName=s.name;break;}
-        normalizeNoActiveInventoryName();
-        buildUi();''',1)
+s=s.replace('db.createSession("Default Inventory")','db.createSession("NO ACTIVE INVENTORY")',1)
+s=s.replace('sessionName="Default Inventory";','sessionName="NO ACTIVE INVENTORY";',1)
+if 'normalizeNoActiveInventoryName();' not in s:
+    anchor_init='        buildUi();'
+    if anchor_init not in s: raise SystemExit('3.0.136 target missing: initialize buildUi')
+    s=s.replace(anchor_init,'        normalizeNoActiveInventoryName();\n        buildUi();',1)
 
 anchor='''    private SharedPreferences prefs(){return getSharedPreferences(SETTINGS,MODE_PRIVATE);}
 '''
