@@ -21,7 +21,7 @@ p.write_text(s)
 
 p=Path('app/src/main/java/com/iceinventory/onhand/MonthlyInventoryActivity.java')
 s=p.read_text()
-anchor='''        TextView profile=text("POS FORMAT PROFILE\nPetrosoft / CStoreOffice",16,Color.WHITE);profile.setPadding(0,dp(8),0,dp(10));root.addView(profile);'''
+anchor=r'''        TextView profile=text("POS FORMAT PROFILE\nPetrosoft / CStoreOffice",16,Color.WHITE);profile.setPadding(0,dp(8),0,dp(10));root.addView(profile);'''
 addition=anchor+'''
         Button help=button("❓ Help / Instructions");help.setOnClickListener(v->startActivity(new Intent(this,HelpActivity.class)));root.addView(help,params(52));'''
 if anchor not in s: raise SystemExit('3.0.130 monthly Help anchor missing')
