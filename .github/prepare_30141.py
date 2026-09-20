@@ -57,7 +57,7 @@ replacement='''    private void readImport(Uri uri) {
     }
 
     private void performImport(Uri uri,boolean replaceCurrent) {'''
-s,n=re.subn(pat,replacement,s,count=1,flags=re.S)
+s,n=re.subn(pat,lambda match: replacement,s,count=1,flags=re.S)
 if n!=1: raise SystemExit('3.0.141 target missing: readImport block')
 p.write_text(s)
 
