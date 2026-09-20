@@ -13,7 +13,7 @@ s=p.read_text().replace('Onhand Inventory 3.0.129','Onhand Inventory 3.0.130',1)
 needle='new AlertDialog.Builder(this).setTitle("Options")'
 pos=s.find(needle)
 if pos<0: raise SystemExit('3.0.130 Main Options dialog missing')
-line_start=s.rfind('\\n',0,pos)+1
+line_start=s.rfind('\n',0,pos)+1
 addition='''        Button help=button("❓ Help / Instructions",0);
         help.setOnClickListener(v->startActivity(new Intent(this,HelpActivity.class)));
         box.addView(help,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(52)));
