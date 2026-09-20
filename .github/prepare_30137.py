@@ -51,6 +51,43 @@ replacement='''    private void ensureMasterPin(Runnable next){
 s,n=re.subn(pat,replacement,s,count=1,flags=re.S)
 if n!=1: raise SystemExit('3.0.137 target missing: ensureMasterPin block')
 
+# The yellow main-screen title is the store/project name, not the imported file name.
+# Keep the full source filename separately (existing last_import_filename preference),
+# and derive CHEV2620 from names such as "ONHAND CHEV2620 MASTER-08-31-2026.txt".
+old='''                String inventoryName=selectedName.trim();
+                int dot=inventoryName.lastIndexOf('.');if(dot>0)inventoryName=inventoryName.substring(0,dot);
+                if(!inventoryName.isEmpty()) {
+                    db.renameSession(sessionId,inventoryName);
+                    sessionName=inventoryName;
+                }'''
+new='''                String inventoryName=projectNameFromImportedFile(selectedName);
+                if(!inventoryName.isEmpty()) {
+                    db.renameSession(sessionId,inventoryName);
+                    sessionName=inventoryName;
+                }'''
+if old not in s: raise SystemExit('3.0.137 target missing: imported filename/session rename')
+s=s.replace(old,new,1)
+
+anchor='''    private String importFileNameKey(){'''
+helper='''    private String projectNameFromImportedFile(String fileName){
+        String n=fileName==null?"":fileName.trim();
+        int slash=Math.max(n.lastIndexOf('/'),n.lastIndexOf('\\\\'));if(slash>=0)n=n.substring(slash+1);
+        int dot=n.lastIndexOf('.');if(dot>0)n=n.substring(0,dot);
+        String upper=n.toUpperCase(Locale.US);
+        if(upper.startsWith("ONHAND ")){
+            String rest=n.substring(7).trim();
+            String restUpper=rest.toUpperCase(Locale.US);
+            int master=restUpper.indexOf(" MASTER-");
+            if(master>0)rest=rest.substring(0,master).trim();
+            if(!rest.isEmpty())return rest;
+        }
+        return n;
+    }
+
+'''
+if anchor not in s: raise SystemExit('3.0.137 target missing: importFileNameKey anchor')
+s=s.replace(anchor,helper+anchor,1)
+
 p.write_text(s)
 
 main=p.read_text()
@@ -60,8 +97,10 @@ checks={
  'count no-pin block':'This phone is a COUNT USER and cannot create or replace the Master PIN.',
  'count pin unlock':'unlockMasterWithPin(next);',
  'master role refresh':'refreshOperatorStatus();',
- 'master role lock':'Master Device Required'
+ 'master role lock':'Master Device Required',
+ 'store title parser':'private String projectNameFromImportedFile(String fileName)',
+ 'store title not filename':'String inventoryName=projectNameFromImportedFile(selectedName);'
 }
 missing=[k for k,v in checks.items() if v not in main]
 if missing: raise SystemExit('3.0.137 verification failed: '+', '.join(missing))
-print('Prepared iCE Onhand 3.0.137: COUNT USER cannot self-promote; existing Master PIN is required')
+print('Prepared iCE Onhand 3.0.137: Master PIN hard lock + store title separated from source filename')
