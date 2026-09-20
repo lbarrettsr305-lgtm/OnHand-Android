@@ -84,9 +84,9 @@ new='deviceSessionId=w.getLong("device_session_id",-1);combinedExported=w.getBoo
 if old not in s: raise SystemExit('3.0.124 target missing: restore controls')
 s=s.replace(old,new,1)
 
-old='private void setEnabledState(){if(chooseSource!=null)chooseSource.setEnabled(!storeName().isEmpty()&&!sourceReady);saveMaster.setEnabled(sourceReady&&!masterCreated);saveOnHand.setEnabled(sourceReady&&!onHandCreated);loadDevice.setEnabled(onHandCreated&&!deviceLoaded);shareOnHand.setEnabled(onHandCreated&&deviceLoaded&&onHandUri!=null);chooseCounts.setEnabled(sourceReady);saveCombined.setEnabled(countsReady&&validated);saveClient.setEnabled(countsReady&&validated);saveAudit.setEnabled(countsReady);}'
-new='private void setEnabledState(){if(chooseSource!=null)chooseSource.setEnabled(!storeName().isEmpty()&&!sourceReady);saveMaster.setEnabled(sourceReady&&!masterCreated);saveOnHand.setEnabled(sourceReady&&!onHandCreated);loadDevice.setEnabled(onHandCreated&&!deviceLoaded);shareOnHand.setEnabled(onHandCreated&&deviceLoaded&&onHandUri!=null);chooseCounts.setEnabled(sourceReady);saveCombined.setEnabled(countsReady&&validated);saveClient.setEnabled(countsReady&&validated);saveAudit.setEnabled(countsReady);if(adjustCount!=null)adjustCount.setEnabled(deviceSessionId>0);if(closeProject!=null)closeProject.setEnabled(combinedExported&&clientExported&&auditExported);}'
-if old not in s: raise SystemExit('3.0.124 target missing: enabled state')
+old='saveAudit.setEnabled(countsReady);}'
+new='saveAudit.setEnabled(countsReady);if(adjustCount!=null)adjustCount.setEnabled(deviceSessionId>0);if(closeProject!=null)closeProject.setEnabled(combinedExported&&clientExported&&auditExported);}'
+if old not in s: raise SystemExit('3.0.124 target missing: enabled state tail')
 s=s.replace(old,new,1)
 
 anchor='''    private android.content.SharedPreferences workflowPrefs()'''
