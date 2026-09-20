@@ -104,7 +104,10 @@ p.write_text(s)
 
 p=Path('app/src/main/java/com/iceinventory/onhand/MonthlyInventoryActivity.java')
 s=p.read_text()
-s=s.replace('import java.io.BufferedReader;','import java.io.BufferedReader;\\nimport java.io.File;\\nimport java.io.FileInputStream;\\nimport java.io.FileOutputStream;',1)
+s=s.replace('import java.io.BufferedReader;','''import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;''',1)
 
 old='private boolean sourceReady,masterCreated,onHandCreated,deviceLoaded,countsReady,validated,countLaunchPending;'
 new='private boolean sourceReady,masterCreated,onHandCreated,deviceLoaded,countsReady,validated,countLaunchPending,restoringMonthly;'
