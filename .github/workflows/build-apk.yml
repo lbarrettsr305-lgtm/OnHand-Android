@@ -23,8 +23,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.149 fixed Import and Export footer
-        run: python3 .github/prepare_30149.py
+      - name: Prepare and verify 3.0.150 location reports
+        run: python3 .github/prepare_30150.py
 
       - name: Restore permanent signing keystore
         env:
