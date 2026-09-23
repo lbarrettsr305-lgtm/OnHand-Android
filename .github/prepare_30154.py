@@ -18,6 +18,29 @@ rep('app/src/main/AndroidManifest.xml', 'iCE Onhand 3.0.153', 'iCE Onhand 3.0.15
 m = 'app/src/main/java/com/iceinventory/onhand/MainActivity.java'
 rep(m, 'Onhand Inventory 3.0.153', 'Onhand Inventory 3.0.154')
 
+rep(m, 'private Spinner location;\n    private LinearLayout bottomIoBar;',
+       'private Spinner location;\n    private TextView currentLocationBanner;\n    private LinearLayout bottomIoBar;')
+rep(m,
+'''        LinearLayout labels=new LinearLayout(this);labels.setOrientation(LinearLayout.HORIZONTAL);''',
+'''        currentLocationBanner=text("CURRENT LOCATION: NOT SET",17,gold(),true);
+        currentLocationBanner.setGravity(Gravity.CENTER);
+        currentLocationBanner.setPadding(dp(8),dp(7),dp(8),dp(7));
+        currentLocationBanner.setBackgroundColor(darkGreen());
+        root.addView(currentLocationBanner,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(44)));
+
+        LinearLayout labels=new LinearLayout(this);labels.setOrientation(LinearLayout.HORIZONTAL);''')
+rep(m,
+'''        if(confirmedLocationSession==sessionId){
+            for(int i=0;i<locs.size();i++)if(locs.get(i).equalsIgnoreCase(confirmedLocation)){location.setSelection(i);break;}
+        }
+    }''',
+'''        if(confirmedLocationSession==sessionId){
+            for(int i=0;i<locs.size();i++)if(locs.get(i).equalsIgnoreCase(confirmedLocation)){location.setSelection(i);break;}
+        }
+        if(currentLocationBanner!=null)currentLocationBanner.setText("CURRENT LOCATION: "+
+                (confirmedLocationSession==sessionId&&!confirmedLocation.isEmpty()?confirmedLocation.toUpperCase(java.util.Locale.US):"NOT SET"));
+    }''')
+
 rep(m, '        root.addView(actionBar);\n        countActionBar=actionBar;',
        '        countActionBar=actionBar;')
 rep(m,
@@ -77,4 +100,4 @@ rep(m,
         holder[0].show();
     }''')
 
-print('Prepared iCE OnHand 3.0.154: fixed quantity footer and separated Share actions')
+print('Prepared iCE OnHand 3.0.154: fixed quantity footer, separated Share actions, and prominent current location')
