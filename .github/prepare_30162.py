@@ -112,6 +112,7 @@ s=s.replace('area.parts.getOrDefault(display,0)+r.quantity','area.parts.getOrDef
 s=s.replace('adjustment.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED);','adjustment.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED|InputType.TYPE_NUMBER_FLAG_DECIMAL);')
 s=s.replace('for(Map.Entry<String,Integer> e:area.parts.entrySet())','for(Map.Entry<String,Double> e:area.parts.entrySet())').replace('for(Map.Entry<String,Integer> e:totals.entrySet())','for(Map.Entry<String,Double> e:totals.entrySet())').replace('for(java.util.Map.Entry<String,Integer> e:totals.entrySet())','for(java.util.Map.Entry<String,Double> e:totals.entrySet())').replace('Integer v=totals.get(loc);','Double v=totals.get(loc);')
 s=s.replace('for(Map.Entry<String,Integer> p:area.parts.entrySet())','for(Map.Entry<String,Double> p:area.parts.entrySet())')
+s=s.replace('Integer current=totals.get(key);','Double current=totals.get(key);')
 p.write_text(s)
 
 # Mechanical quantity propagation through adapters, text and Excel reports.
