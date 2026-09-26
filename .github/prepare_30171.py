@@ -80,7 +80,7 @@ rep(main,
         fields.addView(pin);fields.addView(word);
         AlertDialog dialog=new AlertDialog.Builder(this)
             .setTitle("Clear All OnHand Inventories?")
-            .setMessage("This permanently removes every inventory project, item count, user batch, location total, scan history, and in-app recovery point from this phone. Chief, the Master role, Master PIN, and general settings are kept. Files already saved in Downloads or Google Drive are not deleted.\n\nEnter the Master PIN and type CLEAR to continue.")
+            .setMessage("This permanently removes every inventory project, item count, user batch, location total, scan history, and in-app recovery point from this phone. Chief, the Master role, Master PIN, and general settings are kept. Files already saved in Downloads or Google Drive are not deleted.\\n\\nEnter the Master PIN and type CLEAR to continue.")
             .setView(fields).setPositiveButton("CLEAR ALL INVENTORIES",null).setNegativeButton("Cancel",null).create();
         dialog.setOnShowListener(x->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
             if(!expected.equals(hashMasterPin(pin.getText().toString()))){toast("Incorrect Master PIN");pin.selectAll();return;}
