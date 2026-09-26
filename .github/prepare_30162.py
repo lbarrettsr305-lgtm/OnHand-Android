@@ -39,6 +39,7 @@ s=s.replace('setQuantity(long id, int quantity)','setQuantity(long id, double qu
 s=s.replace('r.quantity=c.getInt(5)','r.quantity=c.getDouble(5)').replace('String description,int quantityDelta,','String description,double quantityDelta,').replace('h.quantityDelta=c.getInt(4)','h.quantityDelta=c.getDouble(4)')
 s=s.replace('int lines=0,units=0;','int lines=0;double units=0;').replace('units=c.getInt(1)','units=c.getDouble(1)').replace('x.unitTotal=c.getInt(5)','x.unitTotal=c.getDouble(5)')
 s=s.replace('int delta=c.getInt(3)','double delta=c.getDouble(3)')
+s=s.replace('int lineCount,int unitTotal,String filename','int lineCount,double unitTotal,String filename')
 p.write_text(s)
 
 # Quantity calculator: decimal key, decimal parsing and double result extras.
@@ -110,6 +111,7 @@ s=s.replace('java.util.TreeMap<String,Integer> totals=new java.util.TreeMap<>(St
 s=s.replace('area.parts.getOrDefault(display,0)+r.quantity','area.parts.getOrDefault(display,0d)+r.quantity').replace('totals.getOrDefault(loc,0)+r.quantity','totals.getOrDefault(loc,0d)+r.quantity')
 s=s.replace('adjustment.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED);','adjustment.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_SIGNED|InputType.TYPE_NUMBER_FLAG_DECIMAL);')
 s=s.replace('for(Map.Entry<String,Integer> e:area.parts.entrySet())','for(Map.Entry<String,Double> e:area.parts.entrySet())').replace('for(Map.Entry<String,Integer> e:totals.entrySet())','for(Map.Entry<String,Double> e:totals.entrySet())').replace('for(java.util.Map.Entry<String,Integer> e:totals.entrySet())','for(java.util.Map.Entry<String,Double> e:totals.entrySet())').replace('Integer v=totals.get(loc);','Double v=totals.get(loc);')
+s=s.replace('for(Map.Entry<String,Integer> p:area.parts.entrySet())','for(Map.Entry<String,Double> p:area.parts.entrySet())')
 p.write_text(s)
 
 # Mechanical quantity propagation through adapters, text and Excel reports.
@@ -150,6 +152,7 @@ for name in ['BatchMergeActivity.java','MonthlyInventoryActivity.java','MonthlyC
  s=s.replace('public final long quantity;','public final double quantity;').replace('int rows,long quantity','int rows,double quantity').replace('String price,long quantity','String price,double quantity')
  s=s.replace('List<CombinedRow> combined,\n                             long sourceTotal,long combinedTotal','List<CombinedRow> combined,\n                             double sourceTotal,double combinedTotal').replace('int uniqueBarcodes,long sourceTotal,long combinedTotal','int uniqueBarcodes,double sourceTotal,double combinedTotal')
  s=s.replace('long difference=combinedTotal-sourceTotal','double difference=combinedTotal-sourceTotal').replace('numberCell(StringBuilder x,String ref,long value,int style)','numberCell(StringBuilder x,String ref,double value,int style)')
+ s=s.replace('String nc(String ref,long v,int s)','String nc(String ref,double v,int s)')
  p.write_text(s)
 
 checks=['QuantityMath.java','InventoryDb.java','MainActivity.java','QuantityActivity.java']
