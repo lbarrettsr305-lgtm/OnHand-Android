@@ -91,7 +91,7 @@ rep(main,
                 getSharedPreferences("liqpos_workflow_state",MODE_PRIVATE).edit().clear().apply();
                 new java.io.File(getFilesDir(),"monthly_workflow_source.xlsx").delete();
                 java.io.File shared=new java.io.File(getCacheDir(),"shared");java.io.File[] cached=shared.listFiles();if(cached!=null)for(java.io.File file:cached)file.delete();
-                activeSessionId=freshId;sessionId=freshId;sessionName="Default Inventory";lastBarcode="";currentLocation="Main";
+                activeSessionId=freshId;sessionId=freshId;sessionName="Default Inventory";lastBarcode="";
                 prefs().edit().putLong(KEY_ACTIVE_SESSION,freshId).apply();
                 dialog.dismiss();refreshLocations();refreshList();refreshOperatorStatus();
                 toast("All inventories cleared — Master settings kept");
