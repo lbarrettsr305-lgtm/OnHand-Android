@@ -75,6 +75,19 @@ new='''        String loc=confirmedLocation;
         saveEnteredCount(code,description.getText().toString(),currentPrice,q,loc);return;'''
 if old not in s: raise SystemExit('main save block missing')
 s=s.replace(old,new,1)
+s=s.replace('''        if(continuousPhoneScan){
+            hideKeyboard();
+            barcode.postDelayed(this::scanBarcode,180);
+        } else {
+            focusBarcodeWithoutKeyboard();
+        }
+        noteCountForSafety();
+        setCountingKeyboardMode(false);
+    }
+
+    private void saveEnteredCount''','''    }
+
+    private void saveEnteredCount''',1)
 anchor='    private void refreshLocations() {'
 helper='''    private void saveEnteredCount(String code,String desc,String price,double amount,String loc){
         db.addLocation(loc);db.addOrIncrement(sessionId,code,desc,price,amount,loc);lastBarcode=code;
@@ -99,6 +112,19 @@ s=s.replace('''        if(continuousPhoneScan){
     private void refreshLocations() {''','''    }
 
     private void refreshLocations() {''',1)
+s=s.replace('''        if(continuousPhoneScan){
+            hideKeyboard();
+            barcode.postDelayed(this::scanBarcode,180);
+        } else {
+            focusBarcodeWithoutKeyboard();
+        }
+        noteCountForSafety();
+        setCountingKeyboardMode(false);
+    }
+
+    private void saveEnteredCount''','''    }
+
+    private void saveEnteredCount''',1)
 s=s.replace('int units=0;for(InventoryDb.Row r:allRows)units+=r.quantity;','double units=0;for(InventoryDb.Row r:allRows)units+=r.quantity;').replace('summary.setText(allRows.size()+" item lines  •  "+units+" total units")','summary.setText(allRows.size()+" item lines  •  "+QuantityMath.format(units)+" total units")')
 s=s.replace('Integer.compare(b.quantity,a.quantity)','Double.compare(b.quantity,a.quantity)').replace('Integer.compare(a.quantity,b.quantity)','Double.compare(a.quantity,b.quantity)')
 s=s.replace('int amount=data.getIntExtra(QuantityActivity.EXTRA_QUANTITY,0);','double amount=data.getDoubleExtra(QuantityActivity.EXTRA_QUANTITY,0);')
