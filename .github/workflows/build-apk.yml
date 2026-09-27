@@ -23,8 +23,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.172 readable reset control
-        run: python3 .github/prepare_30172.py
+      - name: Prepare and verify 3.0.173 simplified role workflow
+        run: python3 .github/prepare_30173.py
 
       - name: Restore permanent signing keystore
         env:
