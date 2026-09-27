@@ -124,20 +124,6 @@ rep(monthly,
     'NEXT: Press 6. EXPORT CUSTOMER IMPORT — EXCEL',
     'normal next instruction')
 
-workflow = '.github/workflows/build-apk.yml'
-rep(workflow,
-    '- name: Prepare and verify 3.0.172 readable reset control\n        run: python3 .github/prepare_30172.py',
-    '- name: Prepare and verify 3.0.173 simplified role workflow\n        run: python3 .github/prepare_30173.py',
-    'workflow prepare')
-wp = Path(workflow); ws = wp.read_text()
-if ws.count('iCE-Onhand-Inventory-3.0.172.apk') != 3:
-    raise SystemExit('3.0.173 workflow APK filename target count '+str(ws.count('iCE-Onhand-Inventory-3.0.172.apk')))
-wp.write_text(ws.replace('iCE-Onhand-Inventory-3.0.172.apk','iCE-Onhand-Inventory-3.0.173.apk'))
-rep(workflow,
-    'iCE-Onhand-Inventory-3.0.172-signed',
-    'iCE-Onhand-Inventory-3.0.173-signed',
-    'workflow artifact')
-
 s = Path(main).read_text(); m = Path(monthly).read_text()
 checks = {
     'version': "versionName '3.0.173'" in Path('app/build.gradle').read_text(),
