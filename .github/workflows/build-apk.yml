@@ -23,8 +23,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.178 role-specific name lookup
-        run: python3 .github/prepare_30178.py
+      - name: Prepare and verify 3.0.179 protected Master sharing
+        run: python3 .github/prepare_30179.py
 
       - name: Restore permanent signing keystore
         env:
@@ -65,13 +65,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.178.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.179.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.178.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.179.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.178-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.178.apk
+          name: iCE-Onhand-Inventory-3.0.179-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.179.apk
           if-no-files-found: error
