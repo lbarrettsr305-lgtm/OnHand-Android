@@ -44,16 +44,16 @@ s=s.replace(old,new,1)
 
 anchor='''    private void showLocationTotals() {'''
 methods='''    private void showCountedLocationPicker() {
-        LinkedHashMap<String,Integer> units=new LinkedHashMap<>();
+        LinkedHashMap<String,Double> units=new LinkedHashMap<>();
         for(InventoryDb.Row r:allRows) {
             if(r.quantity<=0)continue;
             String loc=r.location==null||r.location.trim().isEmpty()?"Main":r.location.trim();
-            units.put(loc,units.getOrDefault(loc,0)+r.quantity);
+            units.put(loc,units.getOrDefault(loc,0d)+r.quantity);
         }
         if(units.isEmpty()){toast("No counted locations yet");return;}
         ArrayList<String> locations=new ArrayList<>(units.keySet());
         String[] choices=new String[locations.size()];
-        for(int i=0;i<locations.size();i++)choices[i]=locations.get(i)+"  •  "+units.get(locations.get(i))+" units";
+        for(int i=0;i<locations.size();i++)choices[i]=locations.get(i)+"  •  "+QuantityMath.format(units.get(locations.get(i)))+" units";
         new AlertDialog.Builder(this).setTitle("Choose a Location")
                 .setItems(choices,(dialog,which)->showCountedItemsAtLocation(locations.get(which)))
                 .setNegativeButton("Back",null).show();
@@ -226,7 +226,7 @@ if b.count(old)!=1:raise SystemExit("Combined category parser anchor not found")
 b=b.replace(old,new,1)
 b=b.replace('''qi=0;bi=1;di=f.length>2?2:-1;pi=f.length>3?3:-1;''','''qi=0;bi=1;di=f.length>2?2:-1;pi=f.length>3?3:-1;ci=-1;''',1)
 b=b.replace('''addBatchRow(stat,f,bi,qi,di,pi,li);''','''addBatchRow(stat,f,bi,qi,di,pi,li,ci);''',1)
-b=b.replace('''addBatchRow(stat,line.split("\\t",-1),bi,qi,di,pi,li);''','''addBatchRow(stat,line.split("\\t",-1),bi,qi,di,pi,li,ci);''',1)
+b=b.replace('''addBatchRow(stat,line.split("\\\\t",-1),bi,qi,di,pi,li);''','''addBatchRow(stat,line.split("\\\\t",-1),bi,qi,di,pi,li,ci);''',1)
 old='''private void addBatchRow(BatchStat stat,String[] v,int bi,int qi,int di,int pi,int li)throws Exception{'''
 new='''private void addBatchRow(BatchStat stat,String[] v,int bi,int qi,int di,int pi,int li,int ci)throws Exception{'''
 if b.count(old)!=1:raise SystemExit("Combined category row method anchor not found")
