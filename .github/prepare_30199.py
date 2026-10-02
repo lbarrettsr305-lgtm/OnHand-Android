@@ -37,6 +37,8 @@ if s.count(old_refresh) != 1:
     raise SystemExit("Current location text refresh target missing or ambiguous")
 s = s.replace(old_refresh, new_refresh, 1)
 
+main.write_text(s)
+
 checks = {
     "app version": "versionName '3.0.199'" in gradle.read_text(),
     "manifest version": "iCE Onhand 3.0.199" in manifest.read_text(),
