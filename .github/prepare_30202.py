@@ -50,7 +50,7 @@ lines[i+1:i+1] = [
     "        monthly.setIncludeFontPadding(false);",
     "        monthly.setPadding(dp(4),0,dp(4),0);",
 ]
-s = "\\n".join(lines) + "\\n"
+s = "\n".join(lines) + "\n"
 main.write_text(s)
 
 checks = {
