@@ -25,7 +25,7 @@ if "Onhand Inventory 3.0.198" not in s:
     raise SystemExit("3.0.198 screen version not found")
 s = s.replace("Onhand Inventory 3.0.198", "Onhand Inventory 3.0.199", 1)
 
-old_banner = 'currentLocationBanner=text("CURRENT LOCATION: NOT SET",17,gold(),true);\n        currentLocationBanner.setGravity(Gravity.CENTER);\n        currentLocationBanner.setPadding(dp(8),dp(7),dp(8),dp(7));\n        currentLocationBanner.setBackgroundColor(darkGreen());\n        root.addView(currentLocationBanner,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(44)));'
+old_banner = 'currentLocationBanner=text("CURRENT LOCATION: NOT SET",17,gold(),true);\n        currentLocationBanner.setGravity(Gravity.CENTER);\n        currentLocationBanner.setPadding(dp(8),dp(7),dp(8),dp(7));\n        currentLocationBanner.setBackgroundColor(darkGreen());\n        currentLocationBanner.setOnClickListener(v->showLocationStep());\n        root.addView(currentLocationBanner,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(44)));'
 new_banner = 'currentLocationBanner=text("CURRENT LOCATION\\nNOT SET",18,Color.WHITE,true);\n        currentLocationBanner.setMaxLines(2);\n        currentLocationBanner.setGravity(Gravity.CENTER);\n        currentLocationBanner.setPadding(dp(8),dp(4),dp(8),dp(4));\n        currentLocationBanner.setBackgroundColor(green());\n        root.addView(currentLocationBanner,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(58)));'
 if s.count(old_banner) != 1:
     raise SystemExit("Current location banner layout target missing or ambiguous")
