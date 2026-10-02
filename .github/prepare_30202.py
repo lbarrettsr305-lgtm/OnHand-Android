@@ -38,19 +38,19 @@ if s.count(old_new) != 1:
     raise SystemExit("Start New Petrosoft button style target missing or ambiguous")
 s = s.replace(old_new, new_new, 1)
 
-monthly_match = re.search(r'(?m)^([ \\t]*Button monthly=button\\(monthlyWorkflowMode\\?.*?;)$', s)
-if not monthly_match:
+lines = s.splitlines()
+monthly_matches = [i for i, line in enumerate(lines) if line.strip().startswith("Button monthly=button(") and "monthlyWorkflowMode?" in line]
+if len(monthly_matches) != 1:
     raise SystemExit("Resume Petrosoft button target missing or ambiguous")
-monthly = monthly_match.group(1)
-if s.count(monthly) != 1:
-    raise SystemExit("Resume Petrosoft button target is ambiguous")
-monthly_style = monthly + '''
-        monthly.setTextSize(12);
-        monthly.setSingleLine(true);
-        monthly.setMaxLines(1);
-        monthly.setIncludeFontPadding(false);
-        monthly.setPadding(dp(4),0,dp(4),0);'''
-s = s.replace(monthly, monthly_style, 1)
+i = monthly_matches[0]
+lines[i+1:i+1] = [
+    "        monthly.setTextSize(12);",
+    "        monthly.setSingleLine(true);",
+    "        monthly.setMaxLines(1);",
+    "        monthly.setIncludeFontPadding(false);",
+    "        monthly.setPadding(dp(4),0,dp(4),0);",
+]
+s = "\\n".join(lines) + "\\n"
 main.write_text(s)
 
 checks = {
