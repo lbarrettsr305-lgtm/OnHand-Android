@@ -125,7 +125,7 @@ insert = [i for i,line in enumerate(lines) if 'TextView inventory=text("Inventor
 if len(insert) != 1:
     raise SystemExit("3.0.197 target missing or ambiguous: Options Inventory section")
 i = insert[0]
-green_unknown = '''        Button unknown=button("Unknown Barcode Behavior\\\\nCurrent: "+friendlyUnknownMode(),1);
+green_unknown = '''        Button unknown=button("Unknown Barcode Behavior\\nCurrent: "+friendlyUnknownMode(),1);
         unknown.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         unknown.setTextSize(18);
         unknown.setSingleLine(false);
@@ -157,7 +157,7 @@ checks = {
     "tab-delimited resume": 'tab_delimited_resume_session_id' in main and 'RESUME INVENTORY' in main,
     "replace guidance": 'Before counting:' in main and 'Bluetooth scanner' in main,
     "unknown setting first": main.index('Button unknown=button("Unknown Barcode Behavior') < main.index('TextView inventory=text("Inventory"'),
-    "green bold unknown setting": 'Button unknown=button("Unknown Barcode Behavior\\\\nCurrent: "+friendlyUnknownMode(),1);' in main and 'unknown.setTextSize(18);' in main,
+    "green bold unknown setting": 'Button unknown=button("Unknown Barcode Behavior\\nCurrent: "+friendlyUnknownMode(),1);' in main and 'unknown.setTextSize(18);' in main,
     "green large item quantities": "compact?19:22,Color.WHITE,true" in adapter and "quantityBadge.setColor(Color.rgb(0,180,45))" in adapter,
 }
 failed = [name for name,ok in checks.items() if not ok]
