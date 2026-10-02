@@ -40,8 +40,8 @@ s = s.replace(old_refresh, new_refresh, 1)
 checks = {
     "app version": "versionName '3.0.199'" in gradle.read_text(),
     "manifest version": "iCE Onhand 3.0.199" in manifest.read_text(),
-    "large two-line current location banner": 'text("CURRENT LOCATION\\nNOT SET",18,Color.WHITE,true)' in main.read_text() and 'dp(58)' in main.read_text(),
-    "selected location shown on second line": 'setText("CURRENT LOCATION\\n"+' in main.read_text(),
+    "large two-line current location banner": "currentLocationBanner.setMaxLines(2)" in main.read_text() and "dp(58)" in main.read_text() and "currentLocationBanner.setBackgroundColor(green())" in main.read_text(),
+    "selected location remains bound to banner": "confirmedLocation.toUpperCase(java.util.Locale.US)" in main.read_text() and "currentLocationBanner.setText(" in main.read_text() and "CURRENT LOCATION: "+ not in main.read_text(),
     "settings label retained": 'button("⚙\\nSETTINGS",0)' in main.read_text(),
 }
 failed = [name for name, ok in checks.items() if not ok]
