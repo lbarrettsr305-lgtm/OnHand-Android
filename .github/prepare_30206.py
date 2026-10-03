@@ -54,6 +54,8 @@ if n!=1: raise SystemExit("Batch merge grand totals anchor missing")
 
 if "missingLocationRows=0;" not in s: raise SystemExit("Batch location reset anchor missing")
 s=s.replace("missingLocationRows=0;","missingLocationRows=0;locationGrandTotal=0;",1)
+if 'StringBuilder s=new StringBuilder();' not in s: raise SystemExit("Batch status builder anchor missing")
+s=s.replace('StringBuilder s=new StringBuilder();','StringBuilder s=new StringBuilder();s.append("Master batch included: ").append(masterIncluded?"YES":"NO - select the Master batch").append("\\n");',1)
 
 method = r'''    private BatchStat readOne(Uri uri)throws Exception{
         BatchStat stat=new BatchStat();stat.fileName=displayName(uri);stat.userName=userPrefix(stat.fileName);
@@ -103,7 +105,10 @@ if n!=1: raise SystemExit("Batch file reader method range not found")
 pat = r"        for\(Total t:combined\.values\(\)\)outputTotal=.*?;\n        verified=.*?;"
 new = '''        for(Total t:combined.values())outputTotal+=t.quantity;
         for(Double q:locationSums.values())locationGrandTotal+=q;
-        verified=errors.isEmpty()&&sourceFiles==candidateFiles&&candidateFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
+        String masterName=savedMasterUserName();
+        boolean masterIncluded=false;
+        if(!masterName.isEmpty())for(BatchStat stat:sourceStats)if(stat.userName.equalsIgnoreCase(masterName)){masterIncluded=true;break;}
+        verified=errors.isEmpty()&&sourceFiles==candidateFiles&&candidateFiles>0&&masterIncluded&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
 s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Batch verification calculation range missing")
 pat = r'    private void writeCombined\(Uri uri\)\{.*?(?=    private void writeVerificationReport\()'
