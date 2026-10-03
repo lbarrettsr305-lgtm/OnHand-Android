@@ -101,7 +101,7 @@ if n!=1: raise SystemExit("Batch file reader method range not found")
 pat = r"        for\(Total t:combined\.values\(\)\)outputTotal=.*?;\n        verified=.*?;"
 new = '''        for(Total t:combined.values())outputTotal+=t.quantity;
         for(Double q:locationSums.values())locationGrandTotal+=q;
-        verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
+        verified=errors.isEmpty()&&sourceFiles==candidateFiles&&candidateFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
 s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Batch verification calculation range missing")
 pat = r'    private void writeCombined\(Uri uri\)\{.*?\n    \}'
