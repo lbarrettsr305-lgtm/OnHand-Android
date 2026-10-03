@@ -137,7 +137,7 @@ print("3.0.205: template presets updated")
 # Keep output/build name aligned with the new app version.
 workflow = root / ".github/workflows/build-apk.yml"
 s = workflow.read_text()
-if "prepare_30204.py" not in s or "3.0.204" not in s: raise SystemExit("workflow 3.0.204 targets missing")
+if "prepare_30205.py" not in s or "3.0.205" not in s: raise SystemExit("workflow 3.0.205 targets missing")
 s = s.replace("Prepare and verify 3.0.204 safe Master count import","Prepare and verify 3.0.205 Victoria import/export templates")
 s = s.replace("prepare_30204.py","prepare_30205.py")
 s = s.replace("3.0.204","3.0.205")
