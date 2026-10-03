@@ -120,45 +120,12 @@ new = '''    private void writeCombined(Uri uri){
     }'''
 s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Combined customer output method range missing")
-pat = r"    private String buildVerificationReport\(\)\{.*?    private String displayName"
-reportMethod = r'''    private String buildVerificationReport(){
-        StringBuilder b=new StringBuilder();
-        b.append("iCE OnHand Victoria Batch Reconciliation Report\r\n");
-        b.append("Created by\t").append(clean(savedUserName())).append("\r\n");
-        b.append("Created at\t").append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.US).format(new Date())).append("\r\n");
-        b.append("Status\t").append(verified?"PASS - VERIFIED":"FAIL - NOT VERIFIED").append("\r\n\r\n");
-        b.append("Selected Files\t").append(selectedFiles).append("\r\n");
-        b.append("Successfully Loaded Files\t").append(sourceFiles).append("\r\n");
-        b.append("Source Rows\t").append(sourceRows).append("\r\n");
-        b.append("Combined Barcode + Location Rows\t").append(combined.size()).append("\r\n");
-        b.append("Source Grand Total Quantity\t").append(QuantityMath.format(sourceGrandTotal)).append("\r\n");
-        b.append("Combined / Customer File Quantity\t").append(QuantityMath.format(outputTotal)).append("\r\n");
-        b.append("Location Grand Total Quantity\t").append(QuantityMath.format(locationGrandTotal)).append("\r\n");
-        b.append("Customer File Difference\t").append(QuantityMath.format(outputTotal-sourceGrandTotal)).append("\r\n");
-        b.append("Location Difference\t").append(QuantityMath.format(locationGrandTotal-sourceGrandTotal)).append("\r\n\r\n");
-        b.append("Uploader\tSource Batch File\tRows\tQuantity\r\n");
-        for(BatchStat stat:sourceStats)b.append(clean(stat.userName)).append('\t').append(clean(stat.fileName)).append('\t').append(stat.rows).append('\t').append(QuantityMath.format(stat.quantity)).append("\r\n");
-        b.append("\r\nLocation\tQuantity\r\n");
-        for(Map.Entry<String,Double> e:locationSums.entrySet())b.append(clean(e.getKey())).append('\t').append(QuantityMath.format(e.getValue())).append("\r\n");
-        b.append("\r\nUser\tLocation\tQuantity\r\n");
-        for(Map.Entry<String,Double> e:userLocationTotals.entrySet()){
-            String[] parts=e.getKey().split("\\u0000",-1);
-            b.append(clean(parts[0])).append('\t').append(clean(parts.length>1?parts[1]:"")).append('\t').append(QuantityMath.format(e.getValue())).append("\r\n");
-        }
-        b.append("\r\nVerification Method\r\n");
-        b.append("1. Every selected inventory source must open successfully.\r\n");
-        b.append("2. Each uploader's batch quantity is summed independently, including the Master upload when selected.\r\n");
-        b.append("3. Matching barcode + location quantities are combined; the location is written to each customer file row.\r\n");
-        b.append("4. PASS requires a named uploader and nonblank location for every counted source row.\r\n");
-        b.append("5. PASS requires source, combined/customer-file, and location grand totals to match.\r\n");
-        b.append("6. Customer file headers: QTY, BARCODE, DESCRIPTION, ITEM NUMBER, LOCATION.\r\n");
-        b.append("\r\nFINAL RESULT\t").append(verified?"PASS - ALL UPLOADS AND LOCATION TOTALS RECONCILE":"FAIL - EXPORT BLOCKED").append("\r\n");
-        return b.toString();
-    }
+old='''        s.append("\\nSource grand total: ").append(sourceGrandTotal).append("\\nCombined grand total: ").append(outputTotal).append("\\nDifference: ").append(outputTotal-sourceGrandTotal).append("\\n\\n");'''
+new='''        s.append("\\nSource grand total: ").append(QuantityMath.format(sourceGrandTotal)).append("\\nCombined/customer file grand total: ").append(QuantityMath.format(outputTotal)).append("\\nLocation grand total: ").append(QuantityMath.format(locationGrandTotal)).append("\\nCustomer file difference: ").append(QuantityMath.format(outputTotal-sourceGrandTotal)).append("\\nLocation difference: ").append(QuantityMath.format(locationGrandTotal-sourceGrandTotal)).append("\\n\\n");'''
+if s.count(old)!=1: raise SystemExit("Batch on-screen total summary anchor missing")
+s=s.replace(old,new,1)
 
-    private String displayName''';
-s,n=re.subn(pat,lambda _:reportMethod,s,count=1,flags=re.S)
-if n!=1: raise SystemExit("Verification report method range missing")
+
 old='''    private String userPrefix(String fileName){String n=fileName==null?"":fileName.trim();int p=n.indexOf(" - ");return p>0?n.substring(0,p).trim():"";}'''
 new='''    private String userPrefix(String fileName){
         String n=fileName==null?"":fileName.trim();
