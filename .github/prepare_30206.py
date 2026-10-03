@@ -104,7 +104,7 @@ new = '''        for(Total t:combined.values())outputTotal+=t.quantity;
         verified=errors.isEmpty()&&sourceFiles==candidateFiles&&candidateFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
 s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Batch verification calculation range missing")
-pat = r'    private void writeCombined\(Uri uri\)\{.*?\n    \}'
+pat = r'    private void writeCombined\(Uri uri\)\{.*?(?=    private void writeVerificationReport\()'
 new = '''    private void writeCombined(Uri uri){
         if(uri==null||!verified)return;
         try(OutputStream os=getContentResolver().openOutputStream(uri)){
