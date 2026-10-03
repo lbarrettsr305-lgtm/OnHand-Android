@@ -98,7 +98,7 @@ s, n = re.subn(pattern, replacement, s, count=1, flags=re.S | re.M)
 if n != 1: raise SystemExit("category-aware add/merge method target missing")
 s = s.replace("SELECT id,session_id,barcode,description,price,quantity,location,updated_at", "SELECT id,session_id,barcode,description,item_number,price,quantity,location,updated_at")
 s = s.replace("i.barcode,i.description,i.price,i.quantity,i.location,i.updated_at,i.category_name", "i.barcode,i.description,i.item_number,i.price,i.quantity,i.location,i.updated_at,i.category_name")
-row_pattern = r"        r\\.description=c\\.getString\\(3\\);.*?if\\(c\\.getColumnCount\\(\\)>9\\)r\\.scanSequence=c\\.getLong\\(9\\);else r\\.scanSequence=r\\.id;"
+row_pattern = r"        r\.description=c\.getString\(3\);.*?if\(c\.getColumnCount\(\)>9\)r\.scanSequence=c\.getLong\(9\);else r\.scanSequence=r\.id;"
 row_replacement = '''        r.description=c.getString(3);
         r.itemNumber=c.getString(4);
         r.price=c.getString(5);
