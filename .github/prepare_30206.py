@@ -50,6 +50,9 @@ pat = r"    private (?:long|double) sourceGrandTotal,outputTotal;"
 s,n=re.subn(pat, "    private double sourceGrandTotal,outputTotal,locationGrandTotal;", s, count=1)
 if n!=1: raise SystemExit("Batch merge grand totals anchor missing")
 
+if "missingLocationRows=0;" not in s: raise SystemExit("Batch location reset anchor missing")
+s=s.replace("missingLocationRows=0;","missingLocationRows=0;locationGrandTotal=0;",1)
+
 method = r'''    private BatchStat readOne(Uri uri)throws Exception{
         BatchStat stat=new BatchStat();stat.fileName=displayName(uri);stat.userName=userPrefix(stat.fileName);
         if(stat.userName.isEmpty())throw new Exception("Uploader name is missing from filename: "+stat.fileName);
