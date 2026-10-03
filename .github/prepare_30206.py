@@ -129,7 +129,7 @@ s=s.replace(old,new,1)
 old='''    private String userPrefix(String fileName){String n=fileName==null?"":fileName.trim();int p=n.indexOf(" - ");return p>0?n.substring(0,p).trim():"";}'''
 new='''    private String userPrefix(String fileName){
         String n=fileName==null?"":fileName.trim();
-        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)^count(.+?)-batch\\d+").matcher(n);
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(?i)^count(.+?)-batch[0-9]+").matcher(n);
         if(m.find())return m.group(1).trim();
         String upper=n.toUpperCase(Locale.US);
         String marker="BATCH COUNT - ";
