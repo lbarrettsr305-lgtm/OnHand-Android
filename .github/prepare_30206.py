@@ -101,7 +101,8 @@ new = '''        for(Total t:combined.values())outputTotal+=t.quantity;
         verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
 s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Batch verification calculation range missing")
-pat = r'        m\.append\("Source grand total: "\).*?;'
+pat = r'        (?:m|s)\.append\("Source grand total: "\).*?;'
+new = '''        s.append("\\nSource grand total: ").append(QuantityMath.format(sourceGrandTotal)).append("\\nCombined grand total: ").append(QuantityMath.format(outputTotal)).append("\\nLocation grand total: ").append(QuantityMath.format(locationGrandTotal)).append("\\nCustomer file difference: ").append(QuantityMath.format(outputTotal-sourceGrandTotal)).append("\\nLocation difference: ").append(QuantityMath.format(locationGrandTotal-sourceGrandTotal)).append("\\n\\n");'''
 new = '''        m.append("Source grand total: ").append(QuantityMath.format(sourceGrandTotal)).append("\\nCombined grand total: ").append(QuantityMath.format(outputTotal)).append("\\nLocation grand total: ").append(QuantityMath.format(locationGrandTotal)).append("\\nCustomer file difference: ").append(QuantityMath.format(outputTotal-sourceGrandTotal)).append("\\nLocation difference: ").append(QuantityMath.format(locationGrandTotal-sourceGrandTotal)).append("\\n\\n");'''
 s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Batch on-screen total summary range missing")
