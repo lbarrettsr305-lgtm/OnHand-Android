@@ -94,7 +94,22 @@ replacement = '''    public void addOrIncrementAt(long sessionId, String barcode
         cv.put("quantity", quantity); cv.put("location", safeLocation); cv.put("updated_at", when);
         db.insertOrThrow("items", null, cv);
     }'''
-
+s, n = re.subn(pattern, replacement, s, count=1, flags=re.S | re.M)
+if n != 1: raise SystemExit("category-aware add/merge method target missing")
+s = s.replace("SELECT id,session_id,barcode,description,price,quantity,location,updated_at", "SELECT id,session_id,barcode,description,item_number,price,quantity,location,updated_at")
+s = s.replace("i.barcode,i.description,i.price,i.quantity,i.location,i.updated_at,i.category_name", "i.barcode,i.description,i.item_number,i.price,i.quantity,i.location,i.updated_at,i.category_name")
+row_pattern = r"        r\\.description=c\\.getString\\(3\\);.*?if\\(c\\.getColumnCount\\(\\)>9\\)r\\.scanSequence=c\\.getLong\\(9\\);else r\\.scanSequence=r\\.id;"
+row_replacement = '''        r.description=c.getString(3);
+        r.itemNumber=c.getString(4);
+        r.price=c.getString(5);
+        r.quantity=c.getDouble(6);
+        r.location=c.getString(7);
+        r.updatedAt=c.getLong(8);
+        if(c.getColumnCount()>9)r.categoryName=c.getString(9);else r.categoryName="";
+        if(c.getColumnCount()>10)r.scanSequence=c.getLong(10);else r.scanSequence=r.id;'''
+s, n = re.subn(row_pattern, row_replacement, s, count=1, flags=re.S)
+if n != 1: raise SystemExit("row cursor mapping target missing")
+dbp.write_text(s)
 print("3.0.205: item number database migration updated")
 
 # Add ITEM NUMBER header recognition and export in the generic configurable text engine.
