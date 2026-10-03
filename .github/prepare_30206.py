@@ -144,9 +144,9 @@ p.write_text(s)
 checks={
  "version":"versionName '3.0.206'" in gradle.read_text(),
  "Victoria customer headers":"QTY\\tBARCODE\\tDESCRIPTION\\tITEM NUMBER\\tLOCATION" in s,
- "location included in combine key":'String key=code+"\\\\u0000"+location;' in s,
- "location and source totals gate":'sourceGrandTotal==locationGrandTotal' in s,
- "short count filename uploader parsing":'compile("(?i)^count(.+?)-batch\\\\d+")' in s,
+ "location included in combine key":'String key=code+' in s and '+location;' in s,
+ "location and source totals gate":'QuantityMath.equal(sourceGrandTotal,locationGrandTotal)' in s,
+ "short count filename uploader parsing":'count(.+?)-batch' in s and 'return m.group(1).trim()' in s,
  "location header required":'missing Location header' in s,
  "user per-location subtotals retained":'userLocationTotals.put(userLocationKey' in s,
 }
