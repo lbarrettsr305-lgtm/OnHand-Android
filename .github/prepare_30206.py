@@ -4,7 +4,23 @@ import re
 import runpy
 
 root = Path(__file__).resolve().parents[1]
+workflow = root / ".github/workflows/build-apk.yml"
+# The preceding preparation step expects its own 3.0.205 workflow markers.
+w = workflow.read_text()
+w = w.replace("Prepare and verify 3.0.206 Victoria reconciliation and import/export templates", "Prepare and verify 3.0.205 Victoria import/export templates")
+w = w.replace(".github/prepare_30206.py", ".github/prepare_30205.py")
+w = w.replace("iCE-Onhand-Inventory-3.0.206", "iCE-Onhand-Inventory-3.0.205")
+w = w.replace("iCE-Onhand-Inventory-3.0.205-signed", "iCE-Onhand-Inventory-3.0.205-signed")
+workflow.write_text(w)
 runpy.run_path(str(root / ".github" / "prepare_30205.py"), run_name="__main__")
+
+# Restore this release's workflow markers after 3.0.205 validated and updated its own.
+w = workflow.read_text()
+w = w.replace("Prepare and verify 3.0.205 Victoria import/export templates", "Prepare and verify 3.0.206 Victoria reconciliation and import/export templates")
+w = w.replace(".github/prepare_30205.py", ".github/prepare_30206.py")
+w = w.replace("iCE-Onhand-Inventory-3.0.205-signed", "iCE-Onhand-Inventory-3.0.206-signed")
+w = w.replace("iCE-Onhand-Inventory-3.0.205", "iCE-Onhand-Inventory-3.0.206")
+workflow.write_text(w)
 
 gradle = root / "app/build.gradle"
 s = gradle.read_text()
