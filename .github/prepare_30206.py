@@ -95,7 +95,7 @@ method = r'''    private BatchStat readOne(Uri uri)throws Exception{
 pat = r"    private BatchStat readOne\(Uri uri\)throws Exception\{.*?    private int find\(String\[\] h,String\.\.\. names\)\{.*?\n"
 s,n=re.subn(pat,lambda _:method,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Batch file reader method range not found")
-pat = r"        for\\(Total t:combined\\.values\\(\\)\\)outputTotal=.*?;\\n        verified=.*?;"
+pat = r"        for\(Total t:combined\.values\(\)\)outputTotal=.*?;\n        verified=.*?;"
 new = '''        for(Total t:combined.values())outputTotal+=t.quantity;
         for(Double q:locationSums.values())locationGrandTotal+=q;
         verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
