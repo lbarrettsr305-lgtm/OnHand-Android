@@ -40,20 +40,15 @@ main.write_text(s.replace("Onhand Inventory 3.0.205", "Onhand Inventory 3.0.206"
 
 p = root / "app/src/main/java/com/iceinventory/onhand/BatchMergeActivity.java"
 s = p.read_text()
-old = '''    private static final class Total {
-        String barcode="",description="",price="";
-        long quantity;
-    }'''
-new = '''    private static final class Total {
+pat = r"    private static final class Total \{.*?\n    \}"
+s,n=re.subn(pat, '''    private static final class Total {
         String barcode="",description="",itemNumber="",price="",location="";
-        long quantity;
-    }'''
-if s.count(old) != 1: raise SystemExit("Batch merge total model anchor missing")
-s = s.replace(old, new, 1)
-old = "    private long sourceGrandTotal,outputTotal;"
-new = "    private long sourceGrandTotal,outputTotal,locationGrandTotal;"
-if s.count(old) != 1: raise SystemExit("Batch merge grand totals anchor missing")
-s = s.replace(old, new, 1)
+        double quantity;
+    }''', s, count=1, flags=re.S)
+if n!=1: raise SystemExit("Batch merge total model anchor missing")
+pat = r"    private (?:long|double) sourceGrandTotal,outputTotal;"
+s,n=re.subn(pat, "    private double sourceGrandTotal,outputTotal,locationGrandTotal;", s, count=1)
+if n!=1: raise SystemExit("Batch merge grand totals anchor missing")
 
 method = r'''    private BatchStat readOne(Uri uri)throws Exception{
         BatchStat stat=new BatchStat();stat.fileName=displayName(uri);stat.userName=userPrefix(stat.fileName);
@@ -69,7 +64,7 @@ method = r'''    private BatchStat readOne(Uri uri)throws Exception{
                 if(line.trim().isEmpty())continue;
                 String[] v=line.split("\t",-1);if(bi>=v.length||qi>=v.length)throw new Exception("Incomplete row in "+stat.fileName);
                 String code=v[bi].trim();if(code.isEmpty())continue;
-                long q;try{q=Long.parseLong(v[qi].replace(",","").trim());}catch(Exception e){throw new Exception("Invalid quantity for barcode "+code+" in "+stat.fileName);}
+                double q;try{q=QuantityMath.parse(v[qi]);}catch(Exception e){throw new Exception("Invalid quantity for barcode "+code+" in "+stat.fileName);}
                 if(li>=v.length||v[li].trim().isEmpty())throw new Exception("Missing location for barcode "+code+" in "+stat.fileName);
                 addBatchRow(stat,v,bi,qi,di,pi,ii,li,q);
             }
@@ -77,21 +72,21 @@ method = r'''    private BatchStat readOne(Uri uri)throws Exception{
         return stat;
     }
 
-    private void addBatchRow(BatchStat stat,String[] v,int bi,int qi,int di,int pi,int ii,int li,long q)throws Exception{
+    private void addBatchRow(BatchStat stat,String[] v,int bi,int qi,int di,int pi,int ii,int li,double q)throws Exception{
         String code=v[bi].trim(),location=clean(v[li]);
         String key=code+"\u0000"+location;
         Total t=combined.get(key);
         if(t==null){t=new Total();t.barcode=code;t.location=location;combined.put(key,t);}
-        t.quantity=Math.addExact(t.quantity,q);
-        sourceGrandTotal=Math.addExact(sourceGrandTotal,q);sourceRows++;stat.rows++;stat.quantity=Math.addExact(stat.quantity,q);
+        t.quantity+=q;
+        sourceGrandTotal+=q;sourceRows++;stat.rows++;stat.quantity+=q;
         if(t.description.isEmpty()&&di>=0&&di<v.length)t.description=clean(v[di]);
         if(t.itemNumber.isEmpty()&&ii>=0&&ii<v.length)t.itemNumber=clean(v[ii]);
         if(t.price.isEmpty()&&pi>=0&&pi<v.length)t.price=v[pi].replace("$","").trim();
         String user=stat.userName;
         String userLocationKey=user+"\u0000"+location;
-        userLocationTotals.put(userLocationKey,Math.addExact(userLocationTotals.getOrDefault(userLocationKey,0L),q));
-        locationSums.put(location,Math.addExact(locationSums.getOrDefault(location,0L),q));
-        locationRows.add(new String[]{user,location,String.valueOf(q),code,di>=0&&di<v.length?clean(v[di]):"",pi>=0&&pi<v.length?clean(v[pi]):"",stat.fileName});
+        userLocationTotals.put(userLocationKey,userLocationTotals.getOrDefault(userLocationKey,0d)+q);
+        locationSums.put(location,locationSums.getOrDefault(location,0d)+q);
+        locationRows.add(new String[]{user,location,QuantityMath.format(q),code,di>=0&&di<v.length?clean(v[di]):"",pi>=0&&pi<v.length?clean(v[pi]):"",stat.fileName});
     }
 
     private int find(String[] h,String... names){for(int i=0;i<h.length;i++){String x=h[i].trim().toLowerCase(Locale.US).replace('_',' ').replace('-',' ');for(String n:names)if(x.equals(n)||x.contains(n))return i;}return -1;}
@@ -101,24 +96,24 @@ pat = r"    private BatchStat readOne\(Uri uri\)throws Exception\{.*?    private
 s,n=re.subn(pat,lambda _:method,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Batch file reader method range not found")
 old='''        for(Total t:combined.values())outputTotal=Math.addExact(outputTotal,t.quantity);
-        verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&sourceGrandTotal==outputTotal;'''
+        verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal);'''
 new='''        for(Total t:combined.values())outputTotal=Math.addExact(outputTotal,t.quantity);
-        for(Long q:locationSums.values())locationGrandTotal=Math.addExact(locationGrandTotal,q);
-        verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&sourceGrandTotal==outputTotal&&sourceGrandTotal==locationGrandTotal;'''
+        for(Double q:locationSums.values())locationGrandTotal+=q;
+        verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
 if s.count(old)!=1: raise SystemExit("Batch verification calculation anchor missing")
 s=s.replace(old,new,1)
-old='''        m.append("Source grand total: ").append(sourceGrandTotal).append("\\nCombined grand total: ").append(outputTotal).append("\\nDifference: ").append(outputTotal-sourceGrandTotal).append("\\n\\n");'''
-new='''        m.append("Source grand total: ").append(sourceGrandTotal).append("\\nCombined grand total: ").append(outputTotal).append("\\nLocation grand total: ").append(locationGrandTotal).append("\\nCustomer file difference: ").append(outputTotal-sourceGrandTotal).append("\\nLocation difference: ").append(locationGrandTotal-sourceGrandTotal).append("\\n\\n");'''
+old='''        m.append("Source grand total: ").append(QuantityMath.format(sourceGrandTotal)).append("\\nCombined grand total: ").append(QuantityMath.format(outputTotal)).append("\\nDifference: ").append(QuantityMath.format(outputTotal-sourceGrandTotal)).append("\\n\\n");'''
+new='''        m.append("Source grand total: ").append(sourceGrandTotal).append("\\nCombined grand total: ").append(outputTotal).append("\\nLocation grand total: ").append(QuantityMath.format(locationGrandTotal)).append("\\nCustomer file difference: ").append(outputTotal-sourceGrandTotal).append("\\nLocation difference: ").append(QuantityMath.format(locationGrandTotal-sourceGrandTotal)).append("\\n\\n");'''
 if s.count(old)!=1: raise SystemExit("Batch on-screen total summary anchor missing")
 s=s.replace(old,new,1)
-old='''        StringBuilder b=new StringBuilder("Quantity\\tBarcode\\tDescription\\tPrice\\r\\n");for(Map.Entry<String,Total> e:combined.entrySet()){Total t=e.getValue();b.append(t.quantity).append('\\t').append(clean(t.barcode)).append('\\t').append(clean(t.description)).append('\\t').append(clean(t.price)).append("\\r\\n");}'''
+old='''        StringBuilder b=new StringBuilder("Quantity\\tBarcode\\tDescription\\tPrice\\r\\n");for(Map.Entry<String,Total> e:combined.entrySet()){Total t=e.getValue();b.append(QuantityMath.format(t.quantity)).append('\\t').append(clean(t.barcode)).append('\\t').append(clean(t.description)).append('\\t').append(clean(t.price)).append("\\r\\n");}'''
 new='''        StringBuilder b=new StringBuilder("QTY\\tBARCODE\\tDESCRIPTION\\tITEM NUMBER\\tLOCATION\\r\\n");for(Map.Entry<String,Total> e:combined.entrySet()){Total t=e.getValue();b.append(t.quantity).append('\\t').append(clean(t.barcode)).append('\\t').append(clean(t.description)).append('\\t').append(clean(t.itemNumber)).append('\\t').append(clean(t.location)).append("\\r\\n");}'''
 if s.count(old)!=1: raise SystemExit("Combined output format anchor missing")
 s=s.replace(old,new,1)
-old='''        b.append("Combined Grand Total Quantity\\t").append(outputTotal).append("\\r\\n");
+old='''        b.append("Combined Grand Total Quantity\\t").append(QuantityMath.format(outputTotal)).append("\\r\\n");
         b.append("Difference\\t").append(outputTotal-sourceGrandTotal).append("\\r\\n\\r\\n");'''
 new='''        b.append("Combined Grand Total Quantity\\t").append(outputTotal).append("\\r\\n");
-        b.append("Location Grand Total Quantity\\t").append(locationGrandTotal).append("\\r\\n");
+        b.append("Location Grand Total Quantity\\t").append(QuantityMath.format(locationGrandTotal)).append("\\r\\n");
         b.append("Customer File Difference\\t").append(outputTotal-sourceGrandTotal).append("\\r\\n");
         b.append("Location Difference\\t").append(locationGrandTotal-sourceGrandTotal).append("\\r\\n\\r\\n");'''
 if s.count(old)!=1: raise SystemExit("Verification report totals anchor missing")
