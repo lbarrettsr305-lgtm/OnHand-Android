@@ -25,7 +25,7 @@ main.write_text(s.replace("Onhand Inventory 3.0.204", "Onhand Inventory 3.0.205"
 # Store Victoria's item number as a real inventory field so it survives import, merge, and export.
 dbp = root / "app/src/main/java/com/iceinventory/onhand/InventoryDb.java"
 s = dbp.read_text()
-m = re.search(r"private static final int DB_VERSION = (\\d+);", s)
+m = re.search(r"private static final int DB_VERSION = (\d+);", s)
 if not m: raise SystemExit("DB version declaration missing")
 old_db_version=int(m.group(1))
 s = s[:m.start()] + "private static final int DB_VERSION = " + str(old_db_version+1) + ";" + s[m.end():]
