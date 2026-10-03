@@ -50,25 +50,36 @@ method = '''    private void ensureItemNumberColumn(SQLiteDatabase db) {
 if marker not in s: raise SystemExit("DB migration insertion point missing")
 s = s.replace(marker, method + marker, 1)
 
-pattern = r"    public void addOrIncrementAt\(long sessionId, String barcode, String description, String price, double quantity, String location, long updatedAt\) \{.*?^    \}"
+pattern = r"    public void addOrIncrementAt\(long sessionId, String barcode, String description, String price, String categoryName, double quantity, String location, long updatedAt\) \{.*?^    \}"
 replacement = '''    public void addOrIncrementAt(long sessionId, String barcode, String description, String price, double quantity, String location, long updatedAt) {
-        addOrIncrementAt(sessionId,barcode,description,"",price,quantity,location,updatedAt);
+        addOrIncrementAt(sessionId,barcode,description,"",price,"",quantity,location,updatedAt);
+    }
+
+    public void addOrIncrementAt(long sessionId, String barcode, String description, String price, String categoryName, double quantity, String location, long updatedAt) {
+        addOrIncrementAt(sessionId,barcode,description,"",price,categoryName,quantity,location,updatedAt);
     }
 
     public void addOrIncrementAt(long sessionId, String barcode, String description, String itemNumber, String price, double quantity, String location, long updatedAt) {
+        addOrIncrementAt(sessionId,barcode,description,itemNumber,price,"",quantity,location,updatedAt);
+    }
+
+    public void addOrIncrementAt(long sessionId, String barcode, String description, String itemNumber, String price, String categoryName, double quantity, String location, long updatedAt) {
         if (sessionId <= 0) throw new IllegalStateException("No active inventory session");
         SQLiteDatabase db = getWritableDatabase();
         String safeBarcode = barcode == null ? "" : barcode.trim();
-        String safeLocation = location == null || location.trim().isEmpty() ? "Main" : location.trim();
+        String safeLocation = canonicalLocation(location);
+        String safeCategory=categoryName==null?"":categoryName.trim();
+        if(safeCategory.isEmpty())try(Cursor inherited=db.rawQuery("SELECT category_name FROM items WHERE session_id=? AND barcode=? AND category_name<>'' LIMIT 1",new String[]{String.valueOf(sessionId),safeBarcode})){if(inherited.moveToFirst())safeCategory=inherited.getString(0);}catch(Exception ignored){}
         long when=updatedAt>0?updatedAt:System.currentTimeMillis();
         String[] args = { String.valueOf(sessionId), safeBarcode, safeLocation };
-        try (Cursor c = db.rawQuery("SELECT id,quantity FROM items WHERE session_id=? AND barcode=? AND location=?", args)) {
+        try (Cursor c = db.rawQuery("SELECT id,quantity FROM items WHERE session_id=? AND barcode=? AND location=? COLLATE NOCASE", args)) {
             if (c.moveToFirst()) {
                 ContentValues cv = new ContentValues();
-                cv.put("quantity", c.getInt(1) + quantity);
+                cv.put("quantity", c.getDouble(1) + quantity);
                 if (description != null && !description.trim().isEmpty()) cv.put("description", description.trim());
                 if (itemNumber != null && !itemNumber.trim().isEmpty()) cv.put("item_number", itemNumber.trim());
                 if (price != null && !price.trim().isEmpty()) cv.put("price", price.trim());
+                if (!safeCategory.isEmpty()) cv.put("category_name", safeCategory);
                 cv.put("updated_at", when);
                 db.update("items", cv, "id=?", new String[]{String.valueOf(c.getLong(0))});
                 return;
@@ -79,16 +90,11 @@ replacement = '''    public void addOrIncrementAt(long sessionId, String barcode
         cv.put("description", description == null ? "" : description.trim());
         cv.put("item_number", itemNumber == null ? "" : itemNumber.trim());
         cv.put("price", price == null ? "" : price.trim());
+        cv.put("category_name", safeCategory);
         cv.put("quantity", quantity); cv.put("location", safeLocation); cv.put("updated_at", when);
         db.insertOrThrow("items", null, cv);
-    }
+    }'''
 
-'''
-s, n = re.subn(pattern, replacement, s, count=1, flags=re.S | re.M)
-if n != 1: raise SystemExit("timestamped add/merge method target missing")
-s = s.replace("SELECT id,session_id,barcode,description,price,quantity,location,updated_at FROM items", "SELECT id,session_id,barcode,description,item_number,price,quantity,location,updated_at FROM items")
-s = s.replace('r.description=c.getString(3);\n        r.price=c.getString(4);\n        r.quantity=c.getInt(5);\n        r.location=c.getString(6);\n        r.updatedAt=c.getLong(7);', 'r.description=c.getString(3);\n        r.itemNumber=c.getString(4);\n        r.price=c.getString(5);\n        r.quantity=c.getInt(6);\n        r.location=c.getString(7);\n        r.updatedAt=c.getLong(8);')
-dbp.write_text(s)
 print("3.0.205: item number database migration updated")
 
 # Add ITEM NUMBER header recognition and export in the generic configurable text engine.
