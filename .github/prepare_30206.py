@@ -101,14 +101,26 @@ new = '''        for(Total t:combined.values())outputTotal+=t.quantity;
         verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
 s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Batch verification calculation range missing")
-old='''        m.append("Source grand total: ").append(QuantityMath.format(sourceGrandTotal)).append("\\nCombined grand total: ").append(QuantityMath.format(outputTotal)).append("\\nDifference: ").append(QuantityMath.format(outputTotal-sourceGrandTotal)).append("\\n\\n");'''
-new='''        m.append("Source grand total: ").append(sourceGrandTotal).append("\\nCombined grand total: ").append(outputTotal).append("\\nLocation grand total: ").append(QuantityMath.format(locationGrandTotal)).append("\\nCustomer file difference: ").append(outputTotal-sourceGrandTotal).append("\\nLocation difference: ").append(QuantityMath.format(locationGrandTotal-sourceGrandTotal)).append("\\n\\n");'''
-if s.count(old)!=1: raise SystemExit("Batch on-screen total summary anchor missing")
-s=s.replace(old,new,1)
-old='''        StringBuilder b=new StringBuilder("Quantity\\tBarcode\\tDescription\\tPrice\\r\\n");for(Map.Entry<String,Total> e:combined.entrySet()){Total t=e.getValue();b.append(QuantityMath.format(t.quantity)).append('\\t').append(clean(t.barcode)).append('\\t').append(clean(t.description)).append('\\t').append(clean(t.price)).append("\\r\\n");}'''
-new='''        StringBuilder b=new StringBuilder("QTY\\tBARCODE\\tDESCRIPTION\\tITEM NUMBER\\tLOCATION\\r\\n");for(Map.Entry<String,Total> e:combined.entrySet()){Total t=e.getValue();b.append(t.quantity).append('\\t').append(clean(t.barcode)).append('\\t').append(clean(t.description)).append('\\t').append(clean(t.itemNumber)).append('\\t').append(clean(t.location)).append("\\r\\n");}'''
-if s.count(old)!=1: raise SystemExit("Combined output format anchor missing")
-s=s.replace(old,new,1)
+pat = r'        m\.append\("Source grand total: "\).*?;'
+new = '''        m.append("Source grand total: ").append(QuantityMath.format(sourceGrandTotal)).append("\\nCombined grand total: ").append(QuantityMath.format(outputTotal)).append("\\nLocation grand total: ").append(QuantityMath.format(locationGrandTotal)).append("\\nCustomer file difference: ").append(QuantityMath.format(outputTotal-sourceGrandTotal)).append("\\nLocation difference: ").append(QuantityMath.format(locationGrandTotal-sourceGrandTotal)).append("\\n\\n");'''
+s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
+if n!=1: raise SystemExit("Batch on-screen total summary range missing")
+pat = r'    private void writeCombined\(Uri uri\)\{.*?\n    \}'
+new = '''    private void writeCombined(Uri uri){
+        if(uri==null||!verified)return;
+        try(OutputStream os=getContentResolver().openOutputStream(uri)){
+            if(os==null)throw new Exception("Could not create combined file");
+            StringBuilder b=new StringBuilder("QTY\\\\tBARCODE\\\\tDESCRIPTION\\\\tITEM NUMBER\\\\tLOCATION\\\\r\\\\n");
+            for(Map.Entry<String,Total> e:combined.entrySet()){
+                Total t=e.getValue();
+                b.append(QuantityMath.format(t.quantity)).append('\\\\t').append(clean(t.barcode)).append('\\\\t').append(clean(t.description)).append('\\\\t').append(clean(t.itemNumber)).append('\\\\t').append(clean(t.location)).append("\\\\r\\\\n");
+            }
+            os.write(b.toString().getBytes(StandardCharsets.UTF_8));
+            status.append("\\\\n\\\\nVerified Victoria customer file exported. Export the Verification Report for the audit record.");
+        }catch(Exception e){status.append("\\\\n\\\\nExport failed: "+e.getMessage());}
+    }'''
+s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
+if n!=1: raise SystemExit("Combined customer output method range missing")
 old='''        b.append("Combined Grand Total Quantity\\t").append(QuantityMath.format(outputTotal)).append("\\r\\n");
         b.append("Difference\\t").append(outputTotal-sourceGrandTotal).append("\\r\\n\\r\\n");'''
 new='''        b.append("Combined Grand Total Quantity\\t").append(outputTotal).append("\\r\\n");
