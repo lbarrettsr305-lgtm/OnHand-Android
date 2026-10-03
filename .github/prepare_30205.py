@@ -50,7 +50,7 @@ method = '''    private void ensureItemNumberColumn(SQLiteDatabase db) {
 if marker not in s: raise SystemExit("DB migration insertion point missing")
 s = s.replace(marker, method + marker, 1)
 
-pattern = r"    public void addOrIncrementAt\(long sessionId, String barcode, String description, String price, double quantity, String location, long updatedAt\) \{.*?\n    \}\n\n    public void setQuantity"
+pattern = r"    public void addOrIncrementAt\(long sessionId, String barcode, String description, String price, double quantity, String location, long updatedAt\) \{.*?^    \}"
 replacement = '''    public void addOrIncrementAt(long sessionId, String barcode, String description, String price, double quantity, String location, long updatedAt) {
         addOrIncrementAt(sessionId,barcode,description,"",price,quantity,location,updatedAt);
     }
@@ -83,8 +83,8 @@ replacement = '''    public void addOrIncrementAt(long sessionId, String barcode
         db.insertOrThrow("items", null, cv);
     }
 
-    public void setQuantity'''
-s, n = re.subn(pattern, replacement, s, count=1, flags=re.S)
+'''
+s, n = re.subn(pattern, replacement, s, count=1, flags=re.S | re.M)
 if n != 1: raise SystemExit("timestamped add/merge method target missing")
 s = s.replace("SELECT id,session_id,barcode,description,price,quantity,location,updated_at FROM items", "SELECT id,session_id,barcode,description,item_number,price,quantity,location,updated_at FROM items")
 s = s.replace('r.description=c.getString(3);\n        r.price=c.getString(4);\n        r.quantity=c.getInt(5);\n        r.location=c.getString(6);\n        r.updatedAt=c.getLong(7);', 'r.description=c.getString(3);\n        r.itemNumber=c.getString(4);\n        r.price=c.getString(5);\n        r.quantity=c.getInt(6);\n        r.location=c.getString(7);\n        r.updatedAt=c.getLong(8);')
