@@ -6,6 +6,7 @@ import runpy
 root = Path(__file__).resolve().parents[1]
 runpy.run_path(str(root / ".github" / "prepare_30204.py"), run_name="__main__")
 
+print("3.0.205: previous release patches completed")
 gradle = root / "app/build.gradle"
 s = gradle.read_text()
 if "versionName '3.0.204'" not in s or "versionCode 30204" not in s:
@@ -23,6 +24,7 @@ if "Onhand Inventory 3.0.204" not in s: raise SystemExit("screen version target 
 main.write_text(s.replace("Onhand Inventory 3.0.204", "Onhand Inventory 3.0.205", 1))
 
 # Store Victoria's item number as a real inventory field so it survives import, merge, and export.
+print("3.0.205: version labels updated")
 dbp = root / "app/src/main/java/com/iceinventory/onhand/InventoryDb.java"
 s = dbp.read_text()
 m = re.search(r"private static final int DB_VERSION = (\d+);", s)
@@ -86,6 +88,7 @@ if n != 1: raise SystemExit("timestamped add/merge method target missing")
 s = s.replace("SELECT id,session_id,barcode,description,price,quantity,location,updated_at FROM items", "SELECT id,session_id,barcode,description,item_number,price,quantity,location,updated_at FROM items")
 s = s.replace('r.description=c.getString(3);\n        r.price=c.getString(4);\n        r.quantity=c.getInt(5);\n        r.location=c.getString(6);\n        r.updatedAt=c.getLong(7);', 'r.description=c.getString(3);\n        r.itemNumber=c.getString(4);\n        r.price=c.getString(5);\n        r.quantity=c.getInt(6);\n        r.location=c.getString(7);\n        r.updatedAt=c.getLong(8);')
 dbp.write_text(s)
+print("3.0.205: item number database migration updated")
 
 # Add ITEM NUMBER header recognition and export in the generic configurable text engine.
 tp = root / "app/src/main/java/com/iceinventory/onhand/TabTextUtils.java"
@@ -97,6 +100,7 @@ s = s.replace('db.addOrIncrementAt(sessionId,code,desc,price,qty,loc,scannedAt);
 s = s.replace('if(f.equals("description")||f.equals("item description")||f.equals("name")||f.contains("description"))return "description";', 'if(f.equals("description")||f.equals("item description")||f.equals("name")||f.contains("description"))return "description";\n        if(f.equals("item number")||f.equals("item no")||f.equals("item #")||f.equals("itemnumber"))return "item_number";')
 if '"item_number".equals(f)' not in s: raise SystemExit("Tab export item number target missing")
 tp.write_text(s)
+print("3.0.205: text import/export updated")
 
 # Show separate saved-order controls for import/export, with Victoria and Generic presets.
 fp = root / "app/src/main/java/com/iceinventory/onhand/FormatConfigActivity.java"
@@ -127,6 +131,7 @@ s = s.replace(anchor,preset+anchor,1)
 s = s.replace('"Standard order is Quantity, Barcode, Description, Price.', '"Use the Generic POS preset for Quantity, Barcode, Description, Price, or Victoria for QTY, BARCODE, DESCRIPTION, ITEM NUMBER, LOCATION.')
 s = s.replace('"Standard incoming order is Quantity, Barcode, Description, Price.', '"Use the Generic POS preset for Quantity, Barcode, Description, Price, or Victoria for QTY, BARCODE, DESCRIPTION, ITEM NUMBER, LOCATION.')
 fp.write_text(s)
+print("3.0.205: template presets updated")
 
 # Keep output/build name aligned with the new app version.
 workflow = root / ".github/workflows/build-apk.yml"
