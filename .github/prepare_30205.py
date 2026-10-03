@@ -51,16 +51,8 @@ if marker not in s: raise SystemExit("DB migration insertion point missing")
 s = s.replace(marker, method + marker, 1)
 
 pattern = r"    public void addOrIncrementAt\(long sessionId, String barcode, String description, String price, String categoryName, double quantity, String location, long updatedAt\) \{.*?^    \}"
-replacement = '''    public void addOrIncrementAt(long sessionId, String barcode, String description, String price, double quantity, String location, long updatedAt) {
-        addOrIncrementAt(sessionId,barcode,description,"",price,"",quantity,location,updatedAt);
-    }
-
-    public void addOrIncrementAt(long sessionId, String barcode, String description, String price, String categoryName, double quantity, String location, long updatedAt) {
+replacement = '''    public void addOrIncrementAt(long sessionId, String barcode, String description, String price, String categoryName, double quantity, String location, long updatedAt) {
         addOrIncrementAt(sessionId,barcode,description,"",price,categoryName,quantity,location,updatedAt);
-    }
-
-    public void addOrIncrementAt(long sessionId, String barcode, String description, String itemNumber, String price, double quantity, String location, long updatedAt) {
-        addOrIncrementAt(sessionId,barcode,description,itemNumber,price,"",quantity,location,updatedAt);
     }
 
     public void addOrIncrementAt(long sessionId, String barcode, String description, String itemNumber, String price, String categoryName, double quantity, String location, long updatedAt) {
@@ -117,8 +109,9 @@ tp = root / "app/src/main/java/com/iceinventory/onhand/TabTextUtils.java"
 s = tp.read_text()
 s = s.replace('else if("description".equals(f))b.append(clean(r.description));', 'else if("description".equals(f))b.append(clean(r.description));\n                else if("item_number".equals(f))b.append(clean(r.itemNumber));')
 s = s.replace('if("description".equals(field))return "Description";', 'if("description".equals(field))return "Description";\n        if("item_number".equals(field))return "ITEM NUMBER";')
+s = s.replace('if("quantity".equals(field))return "Quantity";\n        if("barcode".equals(field))return "Barcode";\n        if("description".equals(field))return "Description";\n        if("price".equals(field))return "Price";\n        if("location".equals(field))return "Location";', 'if("quantity".equals(field))return "QTY";\n        if("barcode".equals(field))return "BARCODE";\n        if("description".equals(field))return "DESCRIPTION";\n        if("price".equals(field))return "PRICE";\n        if("location".equals(field))return "LOCATION";')
 s = s.replace('String price=value(m,"price").replace("$","").trim();', 'String itemNumber=value(m,"item_number");\n        String price=value(m,"price").replace("$","").trim();')
-s = s.replace('db.addOrIncrementAt(sessionId,code,desc,price,qty,loc,scannedAt);', 'db.addOrIncrementAt(sessionId,code,desc,itemNumber,price,qty,loc,scannedAt);')
+s = s.replace('db.addOrIncrementAt(sessionId,code,desc,price,qty,loc,scannedAt);', 'db.addOrIncrementAt(sessionId,code,desc,itemNumber,price,"",qty,loc,scannedAt);')
 s = s.replace('if(f.equals("description")||f.equals("item description")||f.equals("name")||f.contains("description"))return "description";', 'if(f.equals("description")||f.equals("item description")||f.equals("name")||f.contains("description"))return "description";\n        if(f.equals("item number")||f.equals("item no")||f.equals("item #")||f.equals("itemnumber"))return "item_number";')
 if '"item_number".equals(f)' not in s: raise SystemExit("Tab export item number target missing")
 tp.write_text(s)
