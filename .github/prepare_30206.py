@@ -110,14 +110,14 @@ new = '''    private void writeCombined(Uri uri){
         if(uri==null||!verified)return;
         try(OutputStream os=getContentResolver().openOutputStream(uri)){
             if(os==null)throw new Exception("Could not create combined file");
-            StringBuilder b=new StringBuilder("QTY\\\\tBARCODE\\\\tDESCRIPTION\\\\tITEM NUMBER\\\\tLOCATION\\\\r\\\\n");
+            StringBuilder b=new StringBuilder("QTY\\tBARCODE\\tDESCRIPTION\\tITEM NUMBER\\tLOCATION\\r\\n");
             for(Map.Entry<String,Total> e:combined.entrySet()){
                 Total t=e.getValue();
-                b.append(QuantityMath.format(t.quantity)).append('\\\\t').append(clean(t.barcode)).append('\\\\t').append(clean(t.description)).append('\\\\t').append(clean(t.itemNumber)).append('\\\\t').append(clean(t.location)).append("\\\\r\\\\n");
+                b.append(QuantityMath.format(t.quantity)).append('\\t').append(clean(t.barcode)).append('\\t').append(clean(t.description)).append('\\t').append(clean(t.itemNumber)).append('\\t').append(clean(t.location)).append("\\r\\n");
             }
             os.write(b.toString().getBytes(StandardCharsets.UTF_8));
-            status.append("\\\\n\\\\nVerified Victoria customer file exported. Export the Verification Report for the audit record.");
-        }catch(Exception e){status.append("\\\\n\\\\nExport failed: "+e.getMessage());}
+            status.append("\\n\\nVerified Victoria customer file exported. Export the Verification Report for the audit record.");
+        }catch(Exception e){status.append("\\n\\nExport failed: "+e.getMessage());}
     }'''
 s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Combined customer output method range missing")
