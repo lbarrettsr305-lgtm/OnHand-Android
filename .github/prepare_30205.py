@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import re
-import runpy\nimport subprocess\nimport sys
+import subprocess
+import sys
 
 root = Path(__file__).resolve().parents[1]
 subprocess.run([sys.executable, str(root / ".github" / "prepare_30204.py")], check=True)
