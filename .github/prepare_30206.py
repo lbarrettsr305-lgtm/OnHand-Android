@@ -20,6 +20,8 @@ w = w.replace("Prepare and verify 3.0.205 Victoria import/export templates", "Pr
 w = w.replace(".github/prepare_30205.py", ".github/prepare_30206.py")
 w = w.replace("iCE-Onhand-Inventory-3.0.205-signed", "iCE-Onhand-Inventory-3.0.206-signed")
 w = w.replace("iCE-Onhand-Inventory-3.0.205", "iCE-Onhand-Inventory-3.0.206")
+w = w.replace("apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.205.apk", "apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.206.apk")
+w = w.replace("path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.205.apk", "path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.206.apk")
 workflow.write_text(w)
 
 gradle = root / "app/build.gradle"
