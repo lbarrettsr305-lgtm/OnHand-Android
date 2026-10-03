@@ -49,12 +49,12 @@ method = '''    private void ensureItemNumberColumn(SQLiteDatabase db) {
 if marker not in s: raise SystemExit("DB migration insertion point missing")
 s = s.replace(marker, method + marker, 1)
 
-pattern = r"    public void addOrIncrementAt\(long sessionId, String barcode, String description, String price, int quantity, String location, long updatedAt\) \{.*?\n    \}\n\n    public void setQuantity"
+pattern = r"    public void addOrIncrementAt\(long sessionId, String barcode, String description, String price, double quantity, String location, long updatedAt\) \{.*?\n    \}\n\n    public void setQuantity"
 replacement = '''    public void addOrIncrementAt(long sessionId, String barcode, String description, String price, int quantity, String location, long updatedAt) {
         addOrIncrementAt(sessionId,barcode,description,"",price,quantity,location,updatedAt);
     }
 
-    public void addOrIncrementAt(long sessionId, String barcode, String description, String itemNumber, String price, int quantity, String location, long updatedAt) {
+    public void addOrIncrementAt(long sessionId, String barcode, String description, String itemNumber, String price, double quantity, String location, long updatedAt) {
         if (sessionId <= 0) throw new IllegalStateException("No active inventory session");
         SQLiteDatabase db = getWritableDatabase();
         String safeBarcode = barcode == null ? "" : barcode.trim();
