@@ -68,10 +68,10 @@ jobs:
         run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.206.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.205.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.206.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: iCE-Onhand-Inventory-3.0.206-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.205.apk
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.206.apk
           if-no-files-found: error
