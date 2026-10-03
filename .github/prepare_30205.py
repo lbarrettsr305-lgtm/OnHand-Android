@@ -50,7 +50,7 @@ if marker not in s: raise SystemExit("DB migration insertion point missing")
 s = s.replace(marker, method + marker, 1)
 
 pattern = r"    public void addOrIncrementAt\(long sessionId, String barcode, String description, String price, double quantity, String location, long updatedAt\) \{.*?\n    \}\n\n    public void setQuantity"
-replacement = '''    public void addOrIncrementAt(long sessionId, String barcode, String description, String price, int quantity, String location, long updatedAt) {
+replacement = '''    public void addOrIncrementAt(long sessionId, String barcode, String description, String price, double quantity, String location, long updatedAt) {
         addOrIncrementAt(sessionId,barcode,description,"",price,quantity,location,updatedAt);
     }
 
