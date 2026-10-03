@@ -95,13 +95,12 @@ method = r'''    private BatchStat readOne(Uri uri)throws Exception{
 pat = r"    private BatchStat readOne\(Uri uri\)throws Exception\{.*?    private int find\(String\[\] h,String\.\.\. names\)\{.*?\n"
 s,n=re.subn(pat,lambda _:method,s,count=1,flags=re.S)
 if n!=1: raise SystemExit("Batch file reader method range not found")
-old='''        for(Total t:combined.values())outputTotal=Math.addExact(outputTotal,t.quantity);
-        verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal);'''
-new='''        for(Total t:combined.values())outputTotal=Math.addExact(outputTotal,t.quantity);
+pat = r"        for\\(Total t:combined\\.values\\(\\)\\)outputTotal=.*?;\\n        verified=.*?;"
+new = '''        for(Total t:combined.values())outputTotal+=t.quantity;
         for(Double q:locationSums.values())locationGrandTotal+=q;
         verified=errors.isEmpty()&&sourceFiles==selectedFiles&&sourceFiles>0&&QuantityMath.equal(sourceGrandTotal,outputTotal)&&QuantityMath.equal(sourceGrandTotal,locationGrandTotal);'''
-if s.count(old)!=1: raise SystemExit("Batch verification calculation anchor missing")
-s=s.replace(old,new,1)
+s,n=re.subn(pat,lambda _:new,s,count=1,flags=re.S)
+if n!=1: raise SystemExit("Batch verification calculation range missing")
 old='''        m.append("Source grand total: ").append(QuantityMath.format(sourceGrandTotal)).append("\\nCombined grand total: ").append(QuantityMath.format(outputTotal)).append("\\nDifference: ").append(QuantityMath.format(outputTotal-sourceGrandTotal)).append("\\n\\n");'''
 new='''        m.append("Source grand total: ").append(sourceGrandTotal).append("\\nCombined grand total: ").append(outputTotal).append("\\nLocation grand total: ").append(QuantityMath.format(locationGrandTotal)).append("\\nCustomer file difference: ").append(outputTotal-sourceGrandTotal).append("\\nLocation difference: ").append(QuantityMath.format(locationGrandTotal-sourceGrandTotal)).append("\\n\\n");'''
 if s.count(old)!=1: raise SystemExit("Batch on-screen total summary anchor missing")
