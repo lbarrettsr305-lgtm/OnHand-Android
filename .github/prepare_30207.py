@@ -16,8 +16,11 @@ runpy.run_path(str(root / ".github" / "prepare_30206.py"), run_name="__main__")
 # Restore this release's workflow markers after 3.0.206 has completed.
 w = workflow.read_text()
 w = w.replace("Prepare and verify 3.0.206 Victoria reconciliation and import/export templates", "Prepare and verify 3.0.207 Victoria four-column customer report")
+w = w.replace("Prepare and verify 3.0.205 Victoria import/export templates", "Prepare and verify 3.0.207 Victoria four-column customer report")
 w = w.replace(".github/prepare_30206.py", ".github/prepare_30207.py")
+w = w.replace(".github/prepare_30205.py", ".github/prepare_30207.py")
 w = w.replace("iCE-Onhand-Inventory-3.0.206", "iCE-Onhand-Inventory-3.0.207")
+w = w.replace("iCE-Onhand-Inventory-3.0.205", "iCE-Onhand-Inventory-3.0.207")
 workflow.write_text(w)
 
 gradle = root / "app/build.gradle"
