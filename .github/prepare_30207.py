@@ -41,6 +41,26 @@ if "Onhand Inventory 3.0.206" not in s:
     raise SystemExit("3.0.206 screen version missing")
 main.write_text(s.replace("Onhand Inventory 3.0.206", "Onhand Inventory 3.0.207", 1))
 
+# Put the Victoria workflow at the top of Export Reports so it is easy to find.
+main = root / "app/src/main/java/com/iceinventory/onhand/MainActivity.java"
+s = main.read_text()
+old_export = '        addExportButton(exportPanel,exportDialog,"Re-export Previous Batch",3);'
+new_export = old_export + '\n\n        addExportSection(exportPanel,"VICTORIA INVENTORY WORKFLOW");\n        addExportButton(exportPanel,exportDialog,"Victoria Inventory Workflow",4);'
+if s.count(old_export) != 1:
+    raise SystemExit("Victoria export menu insertion point missing")
+s = s.replace(old_export, new_export, 1)
+old_old = '''        addExportSection(exportPanel,"COMBINE & OTHER REPORTS");
+        addExportButton(exportPanel,exportDialog,"Combine & Verify User Batches",4);
+        addExportButton(exportPanel,exportDialog,"Internet Items With Pictures",5);'''
+new_old = '''        addExportSection(exportPanel,"OTHER REPORTS");
+        addExportButton(exportPanel,exportDialog,"Internet Items With Pictures",5);'''
+if s.count(old_old) != 1:
+    raise SystemExit("Victoria duplicate export menu entry missing")
+s = s.replace(old_old, new_old, 1)
+if 'addExportButton(exportPanel,exportDialog,"Victoria Inventory Workflow",4);' not in s:
+    raise SystemExit("Victoria workflow menu verification failed")
+main.write_text(s)
+
 # Counter files and the verification report keep Location. Only the final
 # Victoria customer file removes it, because the client's required layout is
 # QTY, BARCODE, DESCRIPTION, ITEM NUMBER.
