@@ -3,9 +3,22 @@ from pathlib import Path
 import runpy
 
 root = Path(__file__).resolve().parents[1]
+workflow = root / ".github/workflows/build-apk.yml"
+w = workflow.read_text()
+seed = [
+    ("Prepare and verify 3.0.208 Count User defaults and maximum quantity setting",
+     "Prepare and verify 3.0.207 Victoria four-column customer report"),
+    (".github/prepare_30208.py", ".github/prepare_30207.py"),
+    ("iCE-Onhand-Inventory-3.0.208", "iCE-Onhand-Inventory-3.0.207"),
+]
+for old, new in seed:
+    if old not in w:
+        raise SystemExit(f"Initial workflow marker missing: {old}")
+    w = w.replace(old, new)
+workflow.write_text(w)
+
 runpy.run_path(str(root / ".github" / "prepare_30207.py"), run_name="__main__")
 
-workflow = root / ".github/workflows/build-apk.yml"
 w = workflow.read_text()
 replacements = [
     ("Prepare and verify 3.0.207 Victoria four-column customer report",
