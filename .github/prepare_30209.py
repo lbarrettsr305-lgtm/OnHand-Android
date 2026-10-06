@@ -94,19 +94,25 @@ end = s.find("    private void offerMasterCandidateActivation()", start)
 if start < 0 or end < 0:
     raise SystemExit("Shared project role method missing")
 method = s[start:end]
-if 'String verifier="",role="";' not in method:
-    raise SystemExit("Shared role metadata parser declaration missing; method context: " + method[:1400])
-method = method.replace('String verifier="",role="";', 'String verifier="",role="",unknownMode="",maximumQty="";', 1)
+if 'String verifier="",role="",profile=' not in method:
+    raise SystemExit("Shared role metadata parser declaration missing")
+method = method.replace('String verifier="",role="",profile=', 'String verifier="",role="",unknownMode="",maximumQty="",profile=', 1)
 old_parse = 'else if(part.startsWith("ROLE="))role=part.substring("ROLE=".length()).trim();'
-new_parse = old_parse + 'else if(part.startsWith("UNKNOWN_BARCODE_MODE="))unknownMode=part.substring("UNKNOWN_BARCODE_MODE=".length()).trim();else if(part.startsWith("MAXIMUM_QTY="))maximumQty=part.substring("MAXIMUM_QTY=".length()).trim();'
+new_parse = old_parse + '\n                    else if(part.startsWith("UNKNOWN_BARCODE_MODE="))unknownMode=part.substring("UNKNOWN_BARCODE_MODE=".length()).trim();\n                    else if(part.startsWith("MAXIMUM_QTY="))maximumQty=part.substring("MAXIMUM_QTY=".length()).trim();'
 if method.count(old_parse) != 1:
     raise SystemExit("Shared settings metadata parse point missing")
 method = method.replace(old_parse, new_parse, 1)
-old_editor = 'if(verifier.matches("[0-9a-fA-F]{64}"))e.putString(KEY_AUTHORIZED_MASTER_PIN_HASH,verifier);e.apply();'
-new_editor = '''if(verifier.matches("[0-9a-fA-F]{64}"))e.putString(KEY_AUTHORIZED_MASTER_PIN_HASH,verifier);if("ignore".equals(unknownMode)||"add".equals(unknownMode)||"search".equals(unknownMode))e.putString(KEY_UNKNOWN_MODE,unknownMode);try{double limit=QuantityMath.parse(maximumQty);if(limit>=0)e.putString(KEY_MAX_QTY,QuantityMath.format(limit));}catch(Exception ignored){}e.apply();'''
-if method.count(old_editor) != 1:
-    raise SystemExit("Shared settings application point missing")
-method = method.replace(old_editor, new_editor, 1)
+apply_defaults = '''
+        if(!isMasterDevice()){
+            android.content.SharedPreferences.Editor defaults=prefs().edit();boolean changed=false;
+            if("ignore".equals(unknownMode)||"add".equals(unknownMode)||"search".equals(unknownMode)){defaults.putString(KEY_UNKNOWN_MODE,unknownMode);changed=true;}
+            try{double limit=QuantityMath.parse(maximumQty);if(limit>=0){defaults.putString(KEY_MAX_QTY,QuantityMath.format(limit));changed=true;}}catch(Exception ignored){}
+            if(changed)defaults.apply();
+        }
+'''
+if method.count("        refreshOperatorStatus();") != 1:
+    raise SystemExit("Shared settings application insertion point missing")
+method = method.replace("        refreshOperatorStatus();", apply_defaults + "        refreshOperatorStatus();", 1)
 s = s[:start] + method + s[end:]
 
 # Make the setup package label clear: it also delivers Scanning defaults.
