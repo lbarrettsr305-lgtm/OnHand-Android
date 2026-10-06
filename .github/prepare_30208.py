@@ -141,7 +141,7 @@ if s.count(old) != 1:
 s = s.replace(old, new, 1)
 
 old = '''            double amount=data.getDoubleExtra(QuantityActivity.EXTRA_QUANTITY,0);
-            if(amount>0&&pendingQuantityRowId>0) {
+            if(amount>0&&pendingQuantityRowId>0&&requireCurrentCount()) {
                 db.incrementQuantity(pendingQuantityRowId,amount);lastBarcode=pendingQuantityBarcode;refreshList();
             }
             pendingQuantityRowId=-1;pendingQuantityBarcode="";'''
