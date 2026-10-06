@@ -75,7 +75,9 @@ old_unknown = '''        Button unknown=button("Unknown Barcode Behavior: "+frie
         unknown.setOnClickListener(v->showUnknownBarcodeMode());
         box.addView(unknown,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(50)));'''
 if s.count(old_unknown) != 1:
-    raise SystemExit("Existing Unknown Barcode control missing")
+    at = s.find('Button unknown=button("Unknown Barcode Behavior')
+    context = s[max(0, at-150):at+500] if at >= 0 else "Unknown Barcode button absent"
+    raise SystemExit("Existing Unknown Barcode control missing; generated source context: " + context)
 s = s.replace(old_unknown, "", 1)
 
 # Carry the Master-selected scanning defaults in every shared store file.
