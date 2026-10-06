@@ -95,7 +95,7 @@ if start < 0 or end < 0:
     raise SystemExit("Shared project role method missing")
 method = s[start:end]
 if 'String verifier="",role="";' not in method:
-    raise SystemExit("Shared role metadata parser declaration missing")
+    raise SystemExit("Shared role metadata parser declaration missing; method context: " + method[:1400])
 method = method.replace('String verifier="",role="";', 'String verifier="",role="",unknownMode="",maximumQty="";', 1)
 old_parse = 'else if(part.startsWith("ROLE="))role=part.substring("ROLE=".length()).trim();'
 new_parse = old_parse + 'else if(part.startsWith("UNKNOWN_BARCODE_MODE="))unknownMode=part.substring("UNKNOWN_BARCODE_MODE=".length()).trim();else if(part.startsWith("MAXIMUM_QTY="))maximumQty=part.substring("MAXIMUM_QTY=".length()).trim();'
