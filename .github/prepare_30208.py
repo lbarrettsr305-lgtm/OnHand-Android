@@ -90,15 +90,17 @@ if s.count(old) != 1:
     raise SystemExit("Unknown barcode default method missing")
 s = s.replace(old, new, 1)
 
-old = '''        box.addView(unknown,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(50)));
-        new AlertDialog.Builder(this).setTitle("Options").setView(box).setPositiveButton("Done",null).show();'''
-new = '''        box.addView(unknown,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(50)));
+old = '''        Button selectCounter=button("CHANGE / SELECT COUNTER NAME",1);selectCounter.setTypeface(Typeface.DEFAULT,Typeface.BOLD);selectCounter.setTextSize(16);
+        box.addView(selectCounter,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(64)));
+        TextView protectedMessage=text("Scan, display, inventory, and administrative settings are protected. A Master can temporarily unlock them with the Master PIN.",13,Color.LTGRAY,false);'''
+new = '''        Button selectCounter=button("CHANGE / SELECT COUNTER NAME",1);selectCounter.setTypeface(Typeface.DEFAULT,Typeface.BOLD);selectCounter.setTextSize(16);
+        box.addView(selectCounter,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(64)));
         Button maxQty=button("Maximum Qty per Barcode: "+maximumQuantityLabel(),0);
         maxQty.setOnClickListener(v->showMaximumQuantitySetting());
-        box.addView(maxQty,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(50)));
-        new AlertDialog.Builder(this).setTitle("Options").setView(box).setPositiveButton("Done",null).show();'''
+        box.addView(maxQty,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(58)));
+        TextView protectedMessage=text("Scan, display, inventory, and administrative settings are protected. A Master can temporarily unlock them with the Master PIN.",13,Color.LTGRAY,false);'''
 if s.count(old) != 1:
-    raise SystemExit("Options insertion point missing")
+    raise SystemExit("Count User Options insertion point missing")
 s = s.replace(old, new, 1)
 
 old = '''    private void addItem() {
