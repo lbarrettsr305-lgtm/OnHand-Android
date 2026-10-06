@@ -153,7 +153,9 @@ new = '''            double amount=data.getDoubleExtra(QuantityActivity.EXTRA_QU
             }
             pendingQuantityRowId=-1;pendingQuantityBarcode="";'''
 if s.count(old) != 1:
-    raise SystemExit("Add Quantity result action missing")
+    at = s.find("else if(requestCode==REQ_QUANTITY)")
+    context = s[max(0, at-100):at+700] if at >= 0 else "quantity result branch is absent"
+    raise SystemExit("Add Quantity result action missing; generated source context: " + context)
 s = s.replace(old, new, 1)
 
 main.write_text(s)
