@@ -60,29 +60,29 @@ s = s.replace(old, new, 1)
 old = '    private String getUnknownBarcodeMode(){return prefs().getString(KEY_UNKNOWN_MODE,"add");}'
 new = '''    private String getUnknownBarcodeMode(){return prefs().getString(KEY_UNKNOWN_MODE,isMasterDevice()?"add":"ignore");}
 
-    private int maximumQuantityPerBarcode(){return Math.max(0,prefs().getInt(KEY_MAX_QTY,0));}
+    private double maximumQuantityPerBarcode(){try{return Math.max(0,QuantityMath.parse(prefs().getString(KEY_MAX_QTY,"0")));}catch(Exception ignored){return 0;}}
 
-    private String maximumQuantityLabel(){int limit=maximumQuantityPerBarcode();return limit==0?"No limit":String.valueOf(limit);}
+    private String maximumQuantityLabel(){double limit=maximumQuantityPerBarcode();return limit==0?"No limit":QuantityMath.format(limit);}
 
     private void showMaximumQuantitySetting(){
-        EditText input=new EditText(this);input.setSingleLine(true);input.setInputType(InputType.TYPE_CLASS_NUMBER);
-        input.setHint("0 = no limit");int current=maximumQuantityPerBarcode();if(current>0)input.setText(String.valueOf(current));
+        EditText input=new EditText(this);input.setSingleLine(true);input.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        input.setHint("0 = no limit");String current=prefs().getString(KEY_MAX_QTY,"0");if(!"0".equals(current))input.setText(current);
         new AlertDialog.Builder(this).setTitle("Maximum Quantity Per Barcode")
                 .setMessage("Set a maximum total quantity for each barcode across all locations. If a count goes over this number, OnHand will warn and let you confirm. Enter 0 for no limit.")
                 .setView(input).setPositiveButton("Save",(d,w)->{
-                    String value=input.getText().toString().trim();int limit=0;
-                    try{if(!value.isEmpty())limit=Integer.parseInt(value);}catch(Exception e){toast("Enter a whole number from 0 to 2147483647");return;}
+                    String value=input.getText().toString().trim();double limit=0;
+                    try{if(!value.isEmpty())limit=QuantityMath.parse(value);}catch(Exception e){toast("Enter a valid quantity");return;}
                     if(limit<0){toast("Maximum quantity cannot be negative");return;}
-                    prefs().edit().putInt(KEY_MAX_QTY,limit).apply();
-                    toast("Maximum quantity set to "+(limit==0?"No limit":String.valueOf(limit)));
+                    String saved=QuantityMath.format(limit);prefs().edit().putString(KEY_MAX_QTY,saved).apply();
+                    toast("Maximum quantity set to "+(limit==0?"No limit":saved));
                 }).setNegativeButton("Cancel",null).show();
     }
 
-    private void confirmMaximumQuantity(String barcodeCode,int projectedTotal,Runnable continueCount){
-        int limit=maximumQuantityPerBarcode();
+    private void confirmMaximumQuantity(String barcodeCode,double projectedTotal,Runnable continueCount){
+        double limit=maximumQuantityPerBarcode();
         if(limit<=0||projectedTotal<=limit){continueCount.run();return;}
         new AlertDialog.Builder(this).setTitle("Maximum Quantity Exceeded")
-                .setMessage("Barcode "+barcodeCode+" would total "+projectedTotal+" across all locations. The maximum is "+limit+". Continue with this count?")
+                .setMessage("Barcode "+barcodeCode+" would total "+QuantityMath.format(projectedTotal)+" across all locations. The maximum is "+QuantityMath.format(limit)+". Continue with this count?")
                 .setPositiveButton("Continue",(d,w)->continueCount.run())
                 .setNegativeButton("Cancel",null).show();
     }'''
@@ -103,64 +103,50 @@ if s.count(old) != 1:
     raise SystemExit("Count User Options insertion point missing")
 s = s.replace(old, new, 1)
 
-old = '''    private void addItem() {
-        String code=maybeGtin(barcode.getText().toString().trim());'''
-new = '''    private void addItem(){addItem(false);}
+old = '''    private void saveEnteredCount(String code,String desc,String price,double amount,String loc){
+        db.addLocation(loc);db.addOrIncrement(sessionId,code,desc,price,amount,loc);lastBarcode=code;
+        barcode.setText("");description.setText("");qty.setText("");currentPrice="";refreshList();
+        if(continuousPhoneScan){hideKeyboard();barcode.postDelayed(this::scanBarcode,180);}else focusBarcodeWithoutKeyboard();
+        noteCountForSafety();setCountingKeyboardMode(false);
+    }'''
+new = '''    private void saveEnteredCount(String code,String desc,String price,double amount,String loc){saveEnteredCount(code,desc,price,amount,loc,false);}
 
-    private void addItem(boolean confirmedAboveMaximum) {
-        String code=maybeGtin(barcode.getText().toString().trim());'''
-if s.count(old) != 1:
-    raise SystemExit("Add Count method declaration missing")
-s = s.replace(old, new, 1)
-
-old = '''        if(q<=0){toast("Quantity must be greater than zero");focusQuantity();return;}
-        String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString();'''
-new = '''        if(q<=0){toast("Quantity must be greater than zero");focusQuantity();return;}
-        int limit=maximumQuantityPerBarcode();
-        int projected=db.quantityForBarcode(sessionId,code)+q;
-        if(!confirmedAboveMaximum&&limit>0&&projected>limit){
-            confirmMaximumQuantity(code,projected,()->addItem(true));return;
+    private void saveEnteredCount(String code,String desc,String price,double amount,String loc,boolean confirmedAboveMaximum){
+        double projected=db.quantityForBarcode(sessionId,code)+amount;
+        if(!confirmedAboveMaximum&&maximumQuantityPerBarcode()>0&&projected>maximumQuantityPerBarcode()){
+            confirmMaximumQuantity(code,projected,()->saveEnteredCount(code,desc,price,amount,loc,true));return;
         }
-        String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString();'''
+        db.addLocation(loc);db.addOrIncrement(sessionId,code,desc,price,amount,loc);lastBarcode=code;
+        barcode.setText("");description.setText("");qty.setText("");currentPrice="";refreshList();
+        if(continuousPhoneScan){hideKeyboard();barcode.postDelayed(this::scanBarcode,180);}else focusBarcodeWithoutKeyboard();
+        noteCountForSafety();setCountingKeyboardMode(false);
+    }'''
 if s.count(old) != 1:
-    raise SystemExit("Add Count maximum check insertion point missing")
+    raise SystemExit("Count save method missing")
 s = s.replace(old, new, 1)
 
 old = '''    @Override public void onAddOne(InventoryDb.Row row) {
-        db.incrementQuantity(row.id,1);lastBarcode=row.barcode;refreshList();
+        if(!requireCurrentCount()||!requireRowAtCurrentLocation(row))return;
+        db.incrementQuantity(row.id,1);lastBarcode=row.barcode;refreshList();noteCountForSafety();
     }'''
 new = '''    @Override public void onAddOne(InventoryDb.Row row) {
-        int projected=db.quantityForBarcode(sessionId,row.barcode)+1;
-        confirmMaximumQuantity(row.barcode,projected,()->{db.incrementQuantity(row.id,1);lastBarcode=row.barcode;refreshList();});
+        if(!requireCurrentCount()||!requireRowAtCurrentLocation(row))return;
+        double projected=db.quantityForBarcode(sessionId,row.barcode)+1;
+        confirmMaximumQuantity(row.barcode,projected,()->{db.incrementQuantity(row.id,1);lastBarcode=row.barcode;refreshList();noteCountForSafety();});
     }'''
 if s.count(old) != 1:
     raise SystemExit("Existing-item plus action missing")
 s = s.replace(old, new, 1)
 
-old = '''                .setPositiveButton("Save",(dd,w)->{
-                    int nq=r.quantity;try{nq=Integer.parseInt(q.getText().toString().trim());}catch(Exception ignored){}
-                    String nl=loc.getSelectedItem()==null?"Main":loc.getSelectedItem().toString();
-                    db.addLocation(nl);db.updateItem(r.id,d.getText().toString(),price.getText().toString().replace("$","").trim(),nq,nl);refreshList();
-                })'''
-new = '''                .setPositiveButton("Save",(dd,w)->{
-                    int nq=r.quantity;try{nq=Integer.parseInt(q.getText().toString().trim());}catch(Exception ignored){}
-                    String nl=loc.getSelectedItem()==null?"Main":loc.getSelectedItem().toString();
-                    int projected=db.quantityForBarcode(sessionId,r.barcode)-r.quantity+nq;
-                    confirmMaximumQuantity(r.barcode,projected,()->{db.addLocation(nl);db.updateItem(r.id,d.getText().toString(),price.getText().toString().replace("$","").trim(),nq,nl);refreshList();});
-                })'''
-if s.count(old) != 1:
-    raise SystemExit("Edit Count save action missing")
-s = s.replace(old, new, 1)
-
-old = '''            int amount=data.getIntExtra(QuantityActivity.EXTRA_QUANTITY,0);
+old = '''            double amount=data.getDoubleExtra(QuantityActivity.EXTRA_QUANTITY,0);
             if(amount>0&&pendingQuantityRowId>0) {
                 db.incrementQuantity(pendingQuantityRowId,amount);lastBarcode=pendingQuantityBarcode;refreshList();
             }
             pendingQuantityRowId=-1;pendingQuantityBarcode="";'''
-new = '''            int amount=data.getIntExtra(QuantityActivity.EXTRA_QUANTITY,0);
+new = '''            double amount=data.getDoubleExtra(QuantityActivity.EXTRA_QUANTITY,0);
             if(amount>0&&pendingQuantityRowId>0) {
                 final long rowId=pendingQuantityRowId;final String code=pendingQuantityBarcode;
-                int projected=db.quantityForBarcode(sessionId,code)+amount;
+                double projected=db.quantityForBarcode(sessionId,code)+amount;
                 confirmMaximumQuantity(code,projected,()->{db.incrementQuantity(rowId,amount);lastBarcode=code;refreshList();});
             }
             pendingQuantityRowId=-1;pendingQuantityBarcode="";'''
@@ -177,9 +163,9 @@ checks = {
     "maximum quantity setting visible": "Maximum Qty per Barcode:" in s,
     "zero means no limit": "Enter 0 for no limit" in s,
     "warning allows confirmation": 'setPositiveButton("Continue"' in s and 'setNegativeButton("Cancel"' in s,
-    "new count protected": "db.quantityForBarcode(sessionId,code)+q" in s,
+    "new count protected": "maximumQuantityPerBarcode()>0&&projected>maximumQuantityPerBarcode()" in s and "saveEnteredCount(code,desc,price,amount,loc,true)" in s,
     "plus-one protected": "db.quantityForBarcode(sessionId,row.barcode)+1" in s,
-    "add quantity protected": "db.quantityForBarcode(sessionId,code)+amount" in s,
+    "add quantity protected": "db.quantityForBarcode(sessionId,code)+amount" in s and "confirmMaximumQuantity(code,projected" in s,
     "workflow uses this release": "prepare_30208.py" in workflow.read_text() and "3.0.208" in workflow.read_text(),
 }
 failed = [name for name, passed in checks.items() if not passed]
