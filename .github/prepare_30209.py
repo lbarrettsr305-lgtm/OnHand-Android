@@ -83,7 +83,7 @@ elif len(unknown_matches) != 1:
 old_header = '''out.write("#ICE_ONHAND_PROJECT\\tROLE="+(masterCandidate?"MASTER_CANDIDATE":"COUNT_USER")+"\\tMASTER_PIN_HASH="+prefs().getString(KEY_MASTER_PIN_HASH,"")+"\\r\\nQuantity\\tBarcode\\tDescription\\tPrice\\r\\n");'''
 new_header = '''out.write("#ICE_ONHAND_PROJECT\\tROLE="+(masterCandidate?"MASTER_CANDIDATE":"COUNT_USER")+"\\tMASTER_PIN_HASH="+prefs().getString(KEY_MASTER_PIN_HASH,"")+"\\tUNKNOWN_BARCODE_MODE="+getUnknownBarcodeMode()+"\\tMAXIMUM_QTY="+prefs().getString(KEY_MAX_QTY,"0")+"\\r\\nQuantity\\tBarcode\\tDescription\\tPrice\\r\\n");'''
 if s.count(old_header) != 1:
-    at = s.find("MASTER_PIN_HASH=")
+    at = s.find("#ICE_ONHAND_PROJECT")
     context = s[max(0, at-180):at+500] if at >= 0 else "Master PIN metadata absent"
     raise SystemExit("Shared store metadata header missing; generated source context: " + context)
 s = s.replace(old_header, new_header, 1)
