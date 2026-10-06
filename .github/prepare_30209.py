@@ -129,7 +129,7 @@ checks = {
     "Master Scanning has max quantity": 'Button scanMaximum=button("Maximum Qty per Barcode: "+maximumQuantityLabel(),0);' in s,
     "Count User Scanning has max quantity": 'TextView scanSettings=text("SCANNING"' in s and s.count('Button maxQty=button("Maximum Qty per Barcode: "+maximumQuantityLabel(),0);') == 1,
     "shared store exports defaults": "UNKNOWN_BARCODE_MODE=" in s and "MAXIMUM_QTY=" in s,
-    "shared store applies defaults": 'e.putString(KEY_UNKNOWN_MODE,unknownMode)' in s and 'e.putString(KEY_MAX_QTY,QuantityMath.format(limit))' in s,
+    "shared store applies defaults": 'defaults.putString(KEY_UNKNOWN_MODE,unknownMode)' in s and 'defaults.putString(KEY_MAX_QTY,QuantityMath.format(limit))' in s,
     "setup package label": "App + Store + Scanning Settings" in s,
 }
 failed = [name for name, passed in checks.items() if not passed]
