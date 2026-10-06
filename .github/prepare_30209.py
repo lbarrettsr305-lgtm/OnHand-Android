@@ -73,10 +73,11 @@ if s.count(anchor) != 1:
 s = s.replace(anchor, anchor + controls, 1)
 unknown_pattern = r'\n        Button unknown=button\("Unknown Barcode Behavior: "\+friendlyUnknownMode\(\),0\);\n        unknown\.setOnClickListener\(v->showUnknownBarcodeMode\(\)\);\n        box\.addView\(unknown,new LinearLayout\.LayoutParams\(ViewGroup\.LayoutParams\.MATCH_PARENT,dp\(\d+\)\)\);'
 unknown_matches = list(re.finditer(unknown_pattern, s))
-if len(unknown_matches) != 2:
-    raise SystemExit("Expected two Unknown Barcode controls after insertion, found " + str(len(unknown_matches)))
-match = unknown_matches[-1]
-s = s[:match.start()] + s[match.end():]
+if len(unknown_matches) == 2:
+    match = unknown_matches[-1]
+    s = s[:match.start()] + s[match.end():]
+elif len(unknown_matches) != 1:
+    raise SystemExit("Expected one Unknown Barcode control after placement, found " + str(len(unknown_matches)))
 
 # Carry the Master-selected scanning defaults in every shared store file.
 old_header = '''out.write("#ICE_ONHAND_PROJECT\\tROLE="+(masterCandidate?"MASTER_CANDIDATE":"COUNT_USER")+"\\tMASTER_PIN_HASH="+prefs().getString(KEY_MASTER_PIN_HASH,"")+"\\r\\nQuantity\\tBarcode\\tDescription\\tPrice\\r\\n");'''
