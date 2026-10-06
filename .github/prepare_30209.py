@@ -80,8 +80,8 @@ elif len(unknown_matches) != 1:
     raise SystemExit("Expected one Unknown Barcode control after placement, found " + str(len(unknown_matches)))
 
 # Carry the Master-selected scanning defaults in every shared store file.
-old_header = '''out.write("#ICE_ONHAND_PROJECT\\tROLE="+(masterCandidate?"MASTER_CANDIDATE":"COUNT_USER")+"\\tMASTER_PIN_HASH="+prefs().getString(KEY_MASTER_PIN_HASH,"")+"\\r\\nQuantity\\tBarcode\\tDescription\\tPrice\\r\\n");'''
-new_header = '''out.write("#ICE_ONHAND_PROJECT\\tROLE="+(masterCandidate?"MASTER_CANDIDATE":"COUNT_USER")+"\\tMASTER_PIN_HASH="+prefs().getString(KEY_MASTER_PIN_HASH,"")+"\\tUNKNOWN_BARCODE_MODE="+getUnknownBarcodeMode()+"\\tMAXIMUM_QTY="+prefs().getString(KEY_MAX_QTY,"0")+"\\r\\nQuantity\\tBarcode\\tDescription\\tPrice\\r\\n");'''
+old_header = '''String projectHeader="#ICE_ONHAND_PROJECT\\tROLE="+(masterCandidate?"MASTER_CANDIDATE":"COUNT_USER")+"\\tMASTER_PIN_HASH="+prefs().getString(KEY_MASTER_PIN_HASH,"");'''
+new_header = '''String projectHeader="#ICE_ONHAND_PROJECT\\tROLE="+(masterCandidate?"MASTER_CANDIDATE":"COUNT_USER")+"\\tMASTER_PIN_HASH="+prefs().getString(KEY_MASTER_PIN_HASH,"")+"\\tUNKNOWN_BARCODE_MODE="+getUnknownBarcodeMode()+"\\tMAXIMUM_QTY="+prefs().getString(KEY_MAX_QTY,"0");'''
 if s.count(old_header) != 1:
     at = s.find("#ICE_ONHAND_PROJECT")
     context = s[max(0, at-180):at+500] if at >= 0 else "Master PIN metadata absent"
