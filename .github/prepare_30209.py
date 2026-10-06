@@ -71,13 +71,18 @@ controls = '''
 if s.count(anchor) != 1:
     raise SystemExit("Master Scanning section insertion point missing")
 s = s.replace(anchor, anchor + controls, 1)
-unknown_pattern = r'\n        Button unknown=button\("Unknown Barcode Behavior: "\+friendlyUnknownMode\(\),0\);\n        unknown\.setOnClickListener\(v->showUnknownBarcodeMode\(\)\);\n        box\.addView\(unknown,new LinearLayout\.LayoutParams\(ViewGroup\.LayoutParams\.MATCH_PARENT,dp\(\d+\)\)\);'
-unknown_matches = list(re.finditer(unknown_pattern, s))
-if len(unknown_matches) == 2:
-    match = unknown_matches[-1]
-    s = s[:match.start()] + s[match.end():]
-elif len(unknown_matches) != 1:
-    raise SystemExit("Expected one Unknown Barcode control after placement, found " + str(len(unknown_matches)))
+opt_start = s.find("    private void showOptions() {")
+opt_end = s.find("    private String friendlyUnknownMode()", opt_start)
+if opt_start < 0 or opt_end < 0:
+    raise SystemExit("Options method boundaries missing")
+options = s[opt_start:opt_end]
+unknown_pattern = r'\n\s*Button unknown=button\("Unknown Barcode Behavior: "\+friendlyUnknownMode\(\),0\);\n\s*unknown\.setOnClickListener\(v->showUnknownBarcodeMode\(\)\);\n\s*box\.addView\(unknown,[^\n]*\);'
+unknown_matches = list(re.finditer(unknown_pattern, options))
+if not unknown_matches:
+    raise SystemExit("Unknown Barcode control missing from Options")
+for match in reversed(unknown_matches[1:]):
+    options = options[:match.start()] + options[match.end():]
+s = s[:opt_start] + options + s[opt_end:]
 
 # Carry the Master-selected scanning defaults in every shared store file.
 old_header = '''String projectHeader="#ICE_ONHAND_PROJECT\\tROLE="+(masterCandidate?"MASTER_CANDIDATE":"COUNT_USER")+"\\tMASTER_PIN_HASH="+prefs().getString(KEY_MASTER_PIN_HASH,"");'''
