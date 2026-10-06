@@ -117,7 +117,7 @@ new = '''    private void saveEnteredCount(String code,String desc,String price,
             confirmMaximumQuantity(code,projected,()->saveEnteredCount(code,desc,price,amount,loc,true));return;
         }
         db.addLocation(loc);db.addOrIncrement(sessionId,code,desc,price,amount,loc);lastBarcode=code;
-        barcode.setText("");description.setText("");qty.setText("");currentPrice="";refreshList();
+        barcode.setText("");description.setText("");qty.setText("");currentPrice="";updatePricePreview();refreshList();
         if(continuousPhoneScan){hideKeyboard();barcode.postDelayed(this::scanBarcode,180);}else focusBarcodeWithoutKeyboard();
         noteCountForSafety();setCountingKeyboardMode(false);
     }'''
