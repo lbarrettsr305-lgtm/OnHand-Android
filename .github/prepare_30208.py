@@ -122,7 +122,9 @@ new = '''    private void saveEnteredCount(String code,String desc,String price,
         noteCountForSafety();setCountingKeyboardMode(false);
     }'''
 if s.count(old) != 1:
-    raise SystemExit("Count save method missing")
+    at = s.find("saveEnteredCount")
+    context = s[max(0, at-400):at+1200] if at >= 0 else "saveEnteredCount is absent"
+    raise SystemExit("Count save method missing; generated source context: " + context)
 s = s.replace(old, new, 1)
 
 old = '''    @Override public void onAddOne(InventoryDb.Row row) {
