@@ -62,9 +62,9 @@ s = s.replace(old, new, 1)
 # immediately under the Scanning heading.
 anchor = '        box.addView(optionSwitch("Vibrate on Scan",KEY_VIBRATE,true));'
 controls = '''
-        Button unknown=button("Unknown Barcode Behavior: "+friendlyUnknownMode(),0);
-        unknown.setOnClickListener(v->showUnknownBarcodeMode());
-        box.addView(unknown,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(54)));
+        Button unknownScanSetting=button("Unknown Barcode Behavior: "+friendlyUnknownMode(),0);
+        unknownScanSetting.setOnClickListener(v->showUnknownBarcodeMode());
+        box.addView(unknownScanSetting,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(54)));
         Button scanMaximum=button("Maximum Qty per Barcode: "+maximumQuantityLabel(),0);
         scanMaximum.setOnClickListener(v->showMaximumQuantitySetting());
         box.addView(scanMaximum,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(54)));'''
@@ -78,9 +78,8 @@ if opt_start < 0 or opt_end < 0:
 options = s[opt_start:opt_end]
 unknown_pattern = r'\n\s*Button unknown=button\("Unknown Barcode Behavior: "\+friendlyUnknownMode\(\),0\);\n\s*unknown\.setOnClickListener\(v->showUnknownBarcodeMode\(\)\);\n\s*box\.addView\(unknown,[^\n]*\);'
 unknown_matches = list(re.finditer(unknown_pattern, options))
-if not unknown_matches:
-    raise SystemExit("Unknown Barcode control missing from Options")
-for match in reversed(unknown_matches[1:]):
+print("3.0.209 options unknown declarations: " + repr([line.strip() for line in options.splitlines() if "unknown" in line.lower()]))
+for match in reversed(unknown_matches):
     options = options[:match.start()] + options[match.end():]
 s = s[:opt_start] + options + s[opt_end:]
 
@@ -130,7 +129,7 @@ main.write_text(s)
 
 checks = {
     "version": "versionName '3.0.209'" in gradle.read_text(),
-    "Master Scanning has unknown behavior": 'Button unknown=button("Unknown Barcode Behavior: "+friendlyUnknownMode(),0);' in s and 'TextView display=text("Display"' in s,
+    "Master Scanning has unknown behavior": 'Button unknownScanSetting=button("Unknown Barcode Behavior: "+friendlyUnknownMode(),0);' in s and 'TextView display=text("Display"' in s,
     "Master Scanning has max quantity": 'Button scanMaximum=button("Maximum Qty per Barcode: "+maximumQuantityLabel(),0);' in s,
     "Count User Scanning has max quantity": 'TextView scanSettings=text("SCANNING"' in s and s.count('Button maxQty=button("Maximum Qty per Barcode: "+maximumQuantityLabel(),0);') == 1,
     "shared store exports defaults": "UNKNOWN_BARCODE_MODE=" in s and "MAXIMUM_QTY=" in s,
