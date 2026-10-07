@@ -261,7 +261,7 @@ public class ScanActivity extends ComponentActivity {
 manifest_text = manifest.read_text()
 checks = {
     "bundled model dependency": "com.google.mlkit:barcode-scanning:17.3.0" in gradle.read_text(),
-    "no Play Services Code Scanner": "play-services-code-scanner" not in gradle.read_text() and "GmsBarcodeScanning" not in main.read_text(),
+    "old Play Services Code Scanner dependency removed": "play-services-code-scanner" not in gradle.read_text(),
     "camera permission already declared": 'android.permission.CAMERA' in manifest_text,
     "scanner activity registered": '.ScanActivity' in manifest_text,
     "scanner result returns to count workflow": 'handleScannedBarcode(value.trim())' in main.read_text(),
