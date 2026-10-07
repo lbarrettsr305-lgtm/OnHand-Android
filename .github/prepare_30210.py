@@ -56,7 +56,8 @@ s = main.read_text()
 if 'import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;' not in s or 'import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;' not in s:
     raise SystemExit("Old Code Scanner imports missing")
 s = s.replace('import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;\nimport com.google.mlkit.vision.codescanner.GmsBarcodeScanning;\n', '', 1)
-s = s.replace('    private static final int REQ_QUANTITY=1004;\n', '    private static final int REQ_QUANTITY=1004;\n    private static final int REQ_SCAN=1005;\n', 1)
+s = s.replace('    private static final int REQ_QUANTITY=1004;\n', '    private static final int REQ_QUANTITY=1004;\n    private static final int REQ_SCAN=1005;\n    private static final int REQ_SCAN_LOCATION=1006;\n', 1)
+s = s.replace('    private String pendingExportFileName="";\n', '    private String pendingExportFileName="";\n    private EditText pendingLocationScanEntry;\n', 1)
 start = s.find("    private void scanBarcode() {")
 if start < 0:
     raise SystemExit("scanBarcode method missing")
@@ -87,7 +88,27 @@ scan_result = '''        if(requestCode==REQ_SCAN){
 '''
 if s.count(activity_marker) != 1:
     raise SystemExit("onActivityResult insertion point missing")
-s = s.replace(activity_marker, activity_marker + scan_result, 1)
+location_scan = '''        Button camera=button("Scan Location Label",1);
+        camera.setOnClickListener(v->GmsBarcodeScanning.getClient(this).startScan()
+            .addOnSuccessListener(result->{String value=result.getRawValue();if(value!=null)entry.setText(value.trim());})
+            .addOnFailureListener(e->showError("Location scanner error",e)));'''
+location_scan_new = '''        Button camera=button("Scan Location Label",1);
+        camera.setOnClickListener(v->{pendingLocationScanEntry=entry;startActivityForResult(new Intent(this,ScanActivity.class),REQ_SCAN_LOCATION);});'''
+if s.count(location_scan) != 1:
+    raise SystemExit("Location scanner source marker missing")
+s = s.replace(location_scan, location_scan_new, 1)
+location_result = '''        if(requestCode==REQ_SCAN_LOCATION){
+            if(resultCode==RESULT_OK&&data!=null&&pendingLocationScanEntry!=null){
+                String value=data.getStringExtra(ScanActivity.EXTRA_BARCODE);
+                if(value!=null)pendingLocationScanEntry.setText(value.trim());
+            }
+            pendingLocationScanEntry=null;
+            return;
+        }
+'''
+if s.count(activity_marker) != 1:
+    raise SystemExit("onActivityResult insertion point missing")
+s = s.replace(activity_marker, activity_marker + location_result + scan_result, 1)
 main.write_text(s)
 
 scanner = root / "app/src/main/java/com/iceinventory/onhand/ScanActivity.java"
