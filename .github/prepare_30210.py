@@ -45,6 +45,9 @@ gradle.write_text(s.replace(old_dep, new_deps, 1))
 
 manifest = root / "app/src/main/AndroidManifest.xml"
 m = manifest.read_text()
+if m.count("iCE Onhand 3.0.209") != 1:
+    raise SystemExit("3.0.209 app label missing")
+m = m.replace("iCE Onhand 3.0.209", "iCE Onhand 3.0.210", 1)
 activity_marker = '        <activity\n            android:name=".BatchMergeActivity"'
 activity_entry = '        <activity android:name=".ScanActivity" android:exported="false" />\n'
 if m.count(activity_marker) != 1 or ".ScanActivity" in m:
@@ -53,6 +56,9 @@ manifest.write_text(m.replace(activity_marker, activity_entry + activity_marker,
 
 main = root / "app/src/main/java/com/iceinventory/onhand/MainActivity.java"
 s = main.read_text()
+if s.count("Onhand Inventory 3.0.209") != 1:
+    raise SystemExit("3.0.209 main screen version label missing")
+s = s.replace("Onhand Inventory 3.0.209", "Onhand Inventory 3.0.210", 1)
 if 'import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;' not in s or 'import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;' not in s:
     raise SystemExit("Old Code Scanner imports missing")
 s = s.replace('import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;\nimport com.google.mlkit.vision.codescanner.GmsBarcodeScanning;\n', '', 1)
@@ -284,6 +290,7 @@ checks = {
     "old Play Services Code Scanner dependency removed": "play-services-code-scanner" not in gradle.read_text(),
     "camera permission already declared": 'android.permission.CAMERA' in manifest_text,
     "scanner activity registered": '.ScanActivity' in manifest_text,
+    "app and screen labels updated": "iCE Onhand 3.0.210" in manifest_text and "Onhand Inventory 3.0.210" in main.read_text(),
     "scanner result returns to count workflow": 'handleScannedBarcode(value.trim())' in main.read_text(),
     "version set to 3.0.210": "versionCode 30210" in gradle.read_text() and "versionName '3.0.210'" in gradle.read_text(),
 }
