@@ -4,7 +4,7 @@ import runpy
 
 script_dir = Path(__file__).resolve().parent
 root = script_dir.parent if script_dir.name == ".github" else script_dir
-runpy.run_path(str(root / "prepare_30209.py"), run_name="__main__")
+runpy.run_path(str(root / ".github/prepare_30209.py"), run_name="__main__")
 
 workflow = root / ".github/workflows/build-apk.yml"
 w = workflow.read_text()
