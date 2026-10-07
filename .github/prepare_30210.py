@@ -36,10 +36,9 @@ s = s.replace("versionCode 30209", "versionCode 30210", 1).replace("versionName 
 old_dep = "    implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'"
 new_deps = """    implementation 'com.google.mlkit:barcode-scanning:17.3.0'
     implementation 'androidx.activity:activity:1.10.1'
-    def cameraxVersion = '1.4.2'
-    implementation "androidx.camera:camera-camera2:${cameraxVersion}"
-    implementation "androidx.camera:camera-lifecycle:${cameraxVersion}"
-    implementation "androidx.camera:camera-view:${cameraxVersion}"""
+    implementation 'androidx.camera:camera-camera2:1.4.2'
+    implementation 'androidx.camera:camera-lifecycle:1.4.2'
+    implementation 'androidx.camera:camera-view:1.4.2'"""
 if s.count(old_dep) != 1:
     raise SystemExit("Code Scanner dependency marker missing")
 gradle.write_text(s.replace(old_dep, new_deps, 1))
