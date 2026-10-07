@@ -4,9 +4,19 @@ import runpy
 
 script_dir = Path(__file__).resolve().parent
 root = script_dir.parent if script_dir.name == ".github" else script_dir
+workflow = root / ".github/workflows/build-apk.yml"
+seed = workflow.read_text()
+for new, old in [
+    ("Prepare and verify 3.0.210 bundled barcode scanner", "Prepare and verify 3.0.209 Scanning settings transfer"),
+    (".github/prepare_30210.py", ".github/prepare_30209.py"),
+    ("iCE-Onhand-Inventory-3.0.210", "iCE-Onhand-Inventory-3.0.209"),
+]:
+    if new not in seed:
+        raise SystemExit("3.0.210 workflow seed missing: " + new)
+    seed = seed.replace(new, old)
+workflow.write_text(seed)
 runpy.run_path(str(root / ".github/prepare_30209.py"), run_name="__main__")
 
-workflow = root / ".github/workflows/build-apk.yml"
 w = workflow.read_text()
 for old, new in [
     ("Prepare and verify 3.0.209 Scanning settings transfer", "Prepare and verify 3.0.210 bundled barcode scanner"),
