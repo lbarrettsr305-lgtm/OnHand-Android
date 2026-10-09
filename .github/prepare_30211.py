@@ -73,12 +73,7 @@ s = s.replace(counter_max, counter_auto, 1)
 # When enabled, each scan of an already-known barcode adds one at the active location.
 # The existing maximum-quantity warning still governs the total across all locations.
 old_existing = '''        InventoryDb.Row existing=db.latestForBarcode(sessionId,code);
-        if(existing!=null) {
-            description.setText(existing.description==null?"":existing.description);
-            currentPrice=existing.price==null?"":existing.price;
-            focusQuantity();
-            return;
-        }'''
+        if(existing!=null) {'''
 new_existing = '''        InventoryDb.Row existing=db.latestForBarcode(sessionId,code);
         if(existing!=null) {
             if(prefs().getBoolean(KEY_AUTO_INCREMENT,false)) {
@@ -95,11 +90,7 @@ new_existing = '''        InventoryDb.Row existing=db.latestForBarcode(sessionId
                 confirmMaximumQuantity(code,projected,increment);
                 return;
             }
-            description.setText(existing.description==null?"":existing.description);
-            currentPrice=existing.price==null?"":existing.price;
-            focusQuantity();
-            return;
-        }'''
+'''
 if s.count(old_existing) != 1:
     raise SystemExit("Known barcode handling block missing")
 s = s.replace(old_existing, new_existing, 1)
