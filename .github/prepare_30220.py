@@ -30,9 +30,11 @@ s=main.read_text()
 
 # Label the phone-camera action distinctly so a hardware scanner is used by scanning
 # directly into the barcode field.
-pattern=r'Button scan=button\("[^"]+",1\);\s*scan\.setOnClickListener\(v->scanBarcode\(\)\);'
-s,n=re.subn(pattern,'Button scan=button("Phone Camera",1);scan.setOnClickListener(v->scanBarcode());',s,count=1)
-if n!=1: raise SystemExit("Phone camera action not found")
+pattern=r'Button\\s+(\\w+)=button\\("[^"]+",1\\);\\s*\\1\\.setOnClickListener\\(v->scanBarcode\\(\\)\\);'
+s,n=re.subn(pattern,lambda m:f'Button {m.group(1)}=button("Phone Camera",1);{m.group(1)}.setOnClickListener(v->scanBarcode());',s,count=1)
+if n!=1:
+    context="\\n".join(line.strip() for line in s.splitlines() if "scanBarcode()" in line and "button(" in line)
+    raise SystemExit("Phone camera action not found; candidates: "+context)
 s=s.replace('barcode.setHint("Scan or type barcode");','barcode.setHint("External scanner or type barcode");',1)
 
 # Restore a ready-to-scan focus when the inventory opens or resumes from another screen.
