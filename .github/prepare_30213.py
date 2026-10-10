@@ -139,7 +139,7 @@ if f.count(old_save) != 1:
 f = f.replace(old_save, new_save, 1)
 
 for old, new, label in [
-    ('body.addView(text("TXT file • TAB delimited",18,gold(),true));', 'body.addView(text("CSV or TXT • comma or tab delimited",18,gold(),true));', "CSV/TXT label"),
+    ('body.addView(text(MODE_EXPORT.equals(mode)?"Inventory export • TXT or Excel":"TXT file • TAB delimited",18,gold(),true));', 'body.addView(text(MODE_EXPORT.equals(mode)?"Inventory export • TXT or Excel":"CSV or TXT • comma or tab delimited",18,gold(),true));', "CSV/TXT label"),
     ('"Standard incoming order is Quantity, Barcode, Description, Price. Check optional fields only when they exist in the file, then use Move Up / Move Down to match the file. Barcode must remain included.";', '"Choose the preset matching your file. Fleet Feet uses Barcode, Item Number, Description, Size, with no quantity column. CSV and tab-delimited text files are supported; barcode must remain included.";', "import help text"),
     ('"Column setup is LOCKED. You can continue using the saved setup."', '"Column setup is locked for manual edits. Select a preset to save its column order."', "locked setup guidance"),
     ('"CONTINUE TO FILE"', '"SAVE IMPORT FORMAT"', "save button label"),
