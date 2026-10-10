@@ -17,9 +17,9 @@ workflow.write_text(w)
 runpy.run_path(str(root/".github/prepare_30219.py"),run_name="__main__")
 w=workflow.read_text()
 for old,new in [
-    ("Prepare and verify 3.0.218 import replacement behavior","Prepare and verify 3.0.219 replace import instructions"),
-    (".github/prepare_30218.py",".github/prepare_30219.py"),
-    ("iCE-Onhand-Inventory-3.0.218","iCE-Onhand-Inventory-3.0.219"),
+    ("Prepare and verify 3.0.219 replace import instructions","Prepare and verify 3.0.220 external scanner flow"),
+    (".github/prepare_30219.py",".github/prepare_30220.py"),
+    ("iCE-Onhand-Inventory-3.0.219","iCE-Onhand-Inventory-3.0.220"),
 ]:
     if old not in w: raise SystemExit("3.0.218 workflow marker missing: "+old)
     w=w.replace(old,new)
