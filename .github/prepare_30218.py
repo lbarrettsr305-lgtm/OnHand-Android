@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import runpy
+import re
 
 script_dir = Path(__file__).resolve().parent
 root = script_dir.parent if script_dir.name == ".github" else script_dir
@@ -37,10 +38,12 @@ if "import android.provider.OpenableColumns;" not in s:
 if "import android.database.Cursor;" not in s:
     s = s.replace("import android.content.SharedPreferences;", "import android.content.SharedPreferences;\nimport android.database.Cursor;", 1)
 
-start = s.find("    private void readImport(Uri uri) {")
-end = s.find("\n    private int importRow(", start)
+match = re.search(r"    private void readImport\s*\(Uri uri\)\s*\{", s)
+start = match.start() if match else -1
+end_match = re.search(r"^\s*private\s+int\s+importRow\s*\(", s[start:] if start >= 0 else "", re.MULTILINE)
+end = start + end_match.start() if start >= 0 and end_match else -1
 if start < 0 or end < 0:
-    raise SystemExit("Import parser boundaries missing")
+    raise SystemExit("Import parser boundaries missing (readImport="+str(start)+", importRow="+str(end)+")")
 new_parser = '''    private static final class ImportedRow {
         String barcode,description,price,location;
         int quantity;
