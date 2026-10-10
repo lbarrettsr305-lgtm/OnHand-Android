@@ -30,19 +30,21 @@ s=main.read_text()
 
 # Label the phone-camera action distinctly so a hardware scanner is used by scanning
 # directly into the barcode field.
-button_decl=re.compile(r'Button\s+(\w+)=button\("([^"]+)",\d+\);')
-scan_button=next((m for m in button_decl.finditer(s) if "scan" in m.group(2).lower() and "location" not in m.group(2).lower()),None)
-if scan_button is None:
-    context="\n".join(line.strip() for line in s.splitlines() if "button(" in line and any(k in line.lower() for k in ("scan","camera")))
-    raise SystemExit("Phone camera action not found; candidates: "+context)
-label_start,label_end=scan_button.span(2)
-s=s[:label_start]+"Phone Camera"+s[label_end:]
+# Keep the phone camera available but clearly explain the hardware-scanner path.
+s=s.replace('barcode.setHint("Scan or type barcode");','barcode.setHint("External scanner or type barcode");',1)
+hint_anchor='        root.addView(scanBar);'
+if s.count(hint_anchor)==1:
+    s=s.replace(hint_anchor,hint_anchor+'\n        TextView scannerHelp=text("External scanner: scan directly into the barcode field. The camera icon opens the phone camera.",11,Color.LTGRAY,false);scannerHelp.setPadding(dp(4),dp(2),dp(4),dp(3));root.addView(scannerHelp);',1)
+elif 'External scanner: scan directly into the barcode field.' not in s:
+    raise SystemExit("Barcode scanner guidance insertion point missing")
 s=s.replace('barcode.setHint("Scan or type barcode");','barcode.setHint("External scanner or type barcode");',1)
 
 # Restore a ready-to-scan focus when the inventory opens or resumes from another screen.
-start='        refreshLocations();\n        refreshList();\n    }'
-if s.count(start)!=1: raise SystemExit("Startup refresh block missing")
-s=s.replace(start,'        refreshLocations();\n        refreshList();\n        barcode.post(this::focusBarcodeWithoutKeyboard);\n    }',1)
+# Restore a ready-to-scan focus once the barcode input has been created.
+if 'barcode.post(this::focusBarcodeWithoutKeyboard)' not in s:
+    marker='        buildUi();'
+    if s.count(marker)!=1: raise SystemExit("Main UI initialization point missing")
+    s=s.replace(marker,marker+'\n        barcode.post(this::focusBarcodeWithoutKeyboard);',1)
 
 # Highlight known scanned items immediately, including when manual quantity entry is enabled.
 existing='        if(existing!=null) {'
