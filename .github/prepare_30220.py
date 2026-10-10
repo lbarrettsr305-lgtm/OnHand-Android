@@ -38,8 +38,8 @@ once('private static final String KEY_AUTO_GTIN="auto_gtin14";',
 once('Button scan=button("📷 Scan",1);scan.setOnClickListener(v->scanBarcode());',
      'Button scan=button("Camera",1);scan.setOnClickListener(v->scanBarcode());',
      "Camera button label")
-once('barcode.setSingleLine(true);barcode.setHint("Scan or type barcode");',
-     'barcode.setSingleLine(true);barcode.setHint("External scanner or type barcode");',
+once('barcode.setHint("Scan or type barcode");',
+     'barcode.setHint("External scanner or type barcode");',
      "Barcode field hint")
 once('        refreshLocations();\n        refreshList();\n    }',
      '        refreshLocations();\n        refreshList();\n        barcode.post(this::focusBarcodeWithoutKeyboard);\n    }',
