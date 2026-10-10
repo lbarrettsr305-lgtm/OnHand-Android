@@ -49,6 +49,20 @@ new_parser = '''    private static final class ImportedRow {
         int quantity;
     }
 
+    private String importFileNameKey() { return "import_file_name"; }
+
+    private int findHeader(List<String> fields,String... names) {
+        for(int i=0;i<fields.size();i++) {
+            String f=fields.get(i).trim().toLowerCase(Locale.US).replace("_"," ").replace("-"," ");
+            for(String n:names)if(f.equals(n)||f.contains(n))return i;
+        }
+        return -1;
+    }
+
+    private String field(List<String> fields,int index) {
+        return index>=0&&index<fields.size()?fields.get(index).trim():"";
+    }
+
     private String importFileName(Uri uri) {
         String name="";
         try(Cursor c=getContentResolver().query(uri,new String[]{OpenableColumns.DISPLAY_NAME},null,null,null)) {
