@@ -70,6 +70,8 @@ if 'private void scrollToLastBarcode()' not in s:
 
 # The active count location remains governed by the app's existing location selector.
 
+main.write_text(s)
+
 gradle=root/"app/build.gradle"
 g=gradle.read_text()
 if "versionCode 30219" not in g or "versionName '3.0.219'" not in g:raise SystemExit("3.0.219 Gradle version missing")
