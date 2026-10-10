@@ -83,7 +83,7 @@ if s.count("Onhand Inventory 3.0.219")!=1:raise SystemExit("3.0.219 home label m
 main.write_text(s.replace("Onhand Inventory 3.0.219","Onhand Inventory 3.0.220",1))
 
 checks={
-    "phone camera action distinct": 'button("Phone Camera",1)' in main.read_text(),
+    "camera scanner distinction": 'External scanner: scan directly into the barcode field.' in main.read_text(),
     "external scanner hint": 'barcode.setHint("External scanner or type barcode")' in main.read_text(),
     "barcode field ready on startup": 'barcode.post(this::focusBarcodeWithoutKeyboard)' in main.read_text(),
     "known scans highlight before quantity entry": 'if(existing!=null) {\n            lastBarcode=code;\n            applyFilter();' in main.read_text(),
