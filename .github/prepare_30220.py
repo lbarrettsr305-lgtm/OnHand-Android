@@ -30,10 +30,10 @@ s=main.read_text()
 
 # Label the phone-camera action distinctly so a hardware scanner is used by scanning
 # directly into the barcode field.
-pattern=r'Button\\s+(\\w+)=button\\("[^"]+",1\\);\\s*\\1\\.setOnClickListener\\(v->scanBarcode\\(\\)\\);'
+pattern=r'Button\s+(\w+)=button\("[^"]+",1\);\s*\1\.setOnClickListener\(v->scanBarcode\(\)\);'
 s,n=re.subn(pattern,lambda m:f'Button {m.group(1)}=button("Phone Camera",1);{m.group(1)}.setOnClickListener(v->scanBarcode());',s,count=1)
 if n!=1:
-    context="\\n".join(line.strip() for line in s.splitlines() if "scanBarcode()" in line and "button(" in line)
+    context="\n".join(line.strip() for line in s.splitlines() if "scanBarcode()" in line and "button(" in line)
     raise SystemExit("Phone camera action not found; candidates: "+context)
 s=s.replace('barcode.setHint("Scan or type barcode");','barcode.setHint("External scanner or type barcode");',1)
 
