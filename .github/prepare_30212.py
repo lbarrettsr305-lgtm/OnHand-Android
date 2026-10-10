@@ -126,6 +126,17 @@ if t.count(desc_line) != 1:
     raise SystemExit("Import description assignment missing")
 t = t.replace(desc_line, size_logic, 1)
 
+item_number_line = '        String itemNumber=value(m,"item_number");'
+duplicate_description = '''        String itemNumber=value(m,"item_number");
+        if(order.contains("size")&&order.contains("item_number")){
+            InventoryDb.Row prior=db.latestForBarcode(sessionId,code);
+            String oldItem=prior==null||prior.itemNumber==null?"":prior.itemNumber.trim();
+            if(prior!=null&&oldItem.equals(itemNumber.trim())&&prior.description!=null&&prior.description.length()>desc.length())desc=prior.description;
+        }'''
+if t.count(item_number_line) != 1:
+    raise SystemExit("Item Number import assignment missing")
+t = t.replace(item_number_line, duplicate_description, 1)
+
 export_description = '                else if("description".equals(f))b.append(clean(r.description));'
 if t.count(export_description) != 1:
     raise SystemExit("Description export mapping missing")
