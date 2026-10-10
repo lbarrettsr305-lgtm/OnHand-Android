@@ -56,7 +56,7 @@ options_end = s.find("    private String friendlyUnknownMode()", options_start)
 if options_start < 0 or options_end < 0:
     raise SystemExit("Options method boundaries missing")
 options = s[options_start:options_end]
-options_anchor = '        new AlertDialog.Builder(this).setTitle("Options").setView(box).setPositiveButton("Done",null).show();'
+options_anchor = '        new AlertDialog.Builder(this).setTitle("Options")'
 if options.count(options_anchor) != 1:
     raise SystemExit("Options dialog insertion point missing")
 options_controls = '''        TextView importExport=text("Import / Export",16,gold(),true);importExport.setPadding(dp(6),dp(10),0,dp(2));box.addView(importExport);
