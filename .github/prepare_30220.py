@@ -68,43 +68,8 @@ if 'private void scrollToLastBarcode()' not in s:
     if s.count(marker)!=1: raise SystemExit("List filter method missing")
     s=s.replace(marker,helper+marker,1)
 
-# Store the active location per inventory so scanning after resume starts in the same place.
-if 'private static final String KEY_LOCATION_PREFIX=' not in s:
-    key='    private static final String KEY_AUTO_GTIN="auto_gtin14";'
-    if s.count(key)!=1: raise SystemExit("Preference key insertion point missing")
-    s=s.replace(key,key+'\n    private static final String KEY_LOCATION_PREFIX="last_location_session_";',1)
-if 'import android.widget.AdapterView;' not in s:
-    imp='import android.widget.ArrayAdapter;'
-    if s.count(imp)!=1: raise SystemExit("Spinner import insertion point missing")
-    s=s.replace(imp,'import android.widget.AdapterView;\n'+imp,1)
-old='''    private void refreshLocations() {
-        List<String> locs=db.locations();
-        ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,locs);
-        location.setAdapter(a);
-    }'''
-new='''    private void refreshLocations() {
-        List<String> locs=db.locations();
-        ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,locs);
-        location.setAdapter(a);
-        String key=KEY_LOCATION_PREFIX+sessionId;
-        String preferred=prefs().getString(key,"");
-        int index=locs.indexOf(preferred);
-        if(index<0)index=locs.indexOf("Main");
-        if(index>=0)location.setSelection(index);
-        location.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
-            @Override public void onItemSelected(AdapterView<?> parent,View view,int position,long id){
-                Object selected=parent.getItemAtPosition(position);
-                if(selected!=null)prefs().edit().putString(key,selected.toString()).apply();
-                applyFilter();
-            }
-            @Override public void onNothingSelected(AdapterView<?> parent){}
-        });
-    }'''
-if s.count(old)==1:
-    s=s.replace(old,new,1)
-elif 'KEY_LOCATION_PREFIX+sessionId' not in s:
-    raise SystemExit("Location spinner setup not found")
-    
+# The active count location remains governed by the app's existing location selector.
+
 gradle=root/"app/build.gradle"
 g=gradle.read_text()
 if "versionCode 30219" not in g or "versionName '3.0.219'" not in g:raise SystemExit("3.0.219 Gradle version missing")
@@ -123,7 +88,6 @@ checks={
     "barcode field ready on startup": 'barcode.post(this::focusBarcodeWithoutKeyboard)' in main.read_text(),
     "known scans highlight before quantity entry": 'if(existing!=null) {\n            lastBarcode=code;\n            applyFilter();' in main.read_text(),
     "highlighted row is scrolled into view": 'list.setSelection(i)' in main.read_text(),
-    "location remembered per inventory": 'KEY_LOCATION_PREFIX+sessionId' in main.read_text(),
     "existing automatic increment retained": 'auto_increment_count' in main.read_text(),
     "shared scanning settings retained": 'UNKNOWN_BARCODE_MODE=' in main.read_text() and 'MAXIMUM_QTY=' in main.read_text(),
     "version labels": "versionName '3.0.220'" in gradle.read_text() and "iCE Onhand 3.0.220" in manifest.read_text() and "Onhand Inventory 3.0.220" in main.read_text(),
@@ -131,4 +95,4 @@ checks={
 }
 failed=[k for k,v in checks.items() if not v]
 if failed:raise SystemExit("3.0.220 validation failed: "+", ".join(failed))
-print("Prepared iCE OnHand 3.0.220 with hardware-scanner focus, location persistence, and live count highlighting.")
+print("Prepared iCE OnHand 3.0.220 with hardware-scanner focus and live count highlighting.")
