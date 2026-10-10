@@ -99,6 +99,10 @@ once('        description.setText(existing.description==null?"":existing.descrip
 once('        if(q<=0){toast("Quantity must be greater than zero");focusQuantity();return;}',
      '        if(q<=0){toast("Quantity must be greater than zero");focusQuantity();return;}\n        if(q>getMaxQty()){toast("Maximum quantity is "+getMaxQty());focusQuantity();return;}',
      "Maximum quantity validation")
+
+once('        String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString();\n        db.addLocation(loc);\n        db.addOrIncrement(sessionId,code,description.getText().toString(),currentPrice,q,loc);',
+     '        String loc=location.getSelectedItem()==null?"Main":location.getSelectedItem().toString();\n        int current=db.quantityForBarcodeAtLocation(sessionId,code,loc);\n        if(current+q>getMaxQty()){toast("Only "+Math.max(0,getMaxQty()-current)+" more can be counted at "+loc);focusQuantity();return;}\n        db.addLocation(loc);\n        db.addOrIncrement(sessionId,code,description.getText().toString(),currentPrice,q,loc);',
+     "Maximum quantity per location")
 once('        q=Math.max(0,q+delta);',
      '        q=Math.max(0,Math.min(getMaxQty(),q+delta));',
      "Quantity button cap")
