@@ -142,7 +142,7 @@ once('        ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.si
 # Cap one-at-a-time scan increments at the selected location.
 db=root/"app/src/main/java/com/iceinventory/onhand/InventoryDb.java"
 d=db.read_text()
-needle='    public void incrementQuantity(long rowId,int delta) {'
+needle='    public void incrementQuantity(long id, int delta) {'
 if d.count(needle)!=1: raise SystemExit("quantity update method anchor missing or ambiguous")
 d=d.replace(needle,'''    public int quantityForBarcodeAtLocation(long sessionId,String barcode,String location) {
         SQLiteDatabase r=getReadableDatabase();
