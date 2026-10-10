@@ -47,7 +47,49 @@ main = root / "app/src/main/java/com/iceinventory/onhand/MainActivity.java"
 s = main.read_text()
 if s.count("Onhand Inventory 3.0.211") != 1:
     raise SystemExit("3.0.211 main screen label missing")
-main.write_text(s.replace("Onhand Inventory 3.0.211", "Onhand Inventory 3.0.212", 1))
+s = s.replace("Onhand Inventory 3.0.211", "Onhand Inventory 3.0.212", 1)
+
+# Expose the import format screen in Settings and route actual imports through
+# the configured mapper (which handles both the old tab-delimited files and CSV).
+options_start = s.find("    private void showOptions() {")
+options_end = s.find("    private String friendlyUnknownMode()", options_start)
+if options_start < 0 or options_end < 0:
+    raise SystemExit("Options method boundaries missing")
+options = s[options_start:options_end]
+options_anchor = '        new AlertDialog.Builder(this).setTitle("Options").setView(box).setPositiveButton("Done",null).show();'
+if options.count(options_anchor) != 1:
+    raise SystemExit("Options dialog insertion point missing")
+options_controls = '''        TextView importExport=text("Import / Export",16,gold(),true);importExport.setPadding(dp(6),dp(10),0,dp(2));box.addView(importExport);
+        Button importFormat=button("Configure Import Format",0);
+        importFormat.setOnClickListener(v->{Intent intent=new Intent(this,FormatConfigActivity.class);intent.putExtra(FormatConfigActivity.EXTRA_MODE,FormatConfigActivity.MODE_IMPORT);startActivity(intent);});
+        box.addView(importFormat,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(52)));
+'''
+options = options.replace(options_anchor, options_controls + options_anchor, 1)
+s = s[:options_start] + options + s[options_end:]
+
+read_start = s.find("    private void readImport(Uri uri) {")
+if read_start < 0:
+    raise SystemExit("Import method missing")
+brace = s.find("{", read_start); depth=0; read_end=None
+for i in range(brace,len(s)):
+    if s[i]=="{": depth+=1
+    elif s[i]=="}":
+        depth-=1
+        if depth==0:
+            read_end=i+1;break
+if read_end is None:
+    raise SystemExit("Import method end missing")
+read_method = '''    private void readImport(Uri uri) {
+        if(uri==null)return;
+        try(InputStream is=getContentResolver().openInputStream(uri);
+            BufferedReader br=new BufferedReader(new InputStreamReader(is,StandardCharsets.UTF_8))) {
+            if(br==null)throw new Exception("Could not read selected file");
+            int imported=TabTextUtils.importRows(br,db,sessionId,prefs(),prefs().getBoolean(KEY_AUTO_GTIN,false));
+            refreshLocations();refreshList();toast("Imported "+imported+" rows");
+        } catch(Exception e){showError("Import failed",e);}
+    }'''
+s = s[:read_start] + read_method + s[read_end:]
+main.write_text(s)
 
 # Add a reusable import preset matching the customer's headerless CSV:
 # Barcode, Item Number, Description, Size, followed by a blank fifth column.
@@ -169,6 +211,8 @@ text_path.write_text(t)
 checks = {
     "version labels": "versionName '3.0.212'" in gradle.read_text() and "iCE Onhand 3.0.212" in manifest.read_text() and "Onhand Inventory 3.0.212" in main.read_text(),
     "Fleet Feet import preset": 'Button fleetFeet=button("Fleet Feet")' in f and 'String[] fields={"barcode","item_number","description","size"};' in f,
+    "import format is reachable": 'button("Configure Import Format",0)' in s and 'FormatConfigActivity.MODE_IMPORT' in s,
+    "imports use configured mapping": 'TabTextUtils.importRows(br,db,sessionId,prefs(),prefs().getBoolean(KEY_AUTO_GTIN,false))' in s,
     "CSV parsing": "if(line.indexOf(',')" in t or "else if(c==','&&!quoted)" in t,
     "size retained with description": '[Size: "+size+"]' in t,
     "item number retained": 'String itemNumber=value(m,"item_number");' in t and 'item_number' in t,
