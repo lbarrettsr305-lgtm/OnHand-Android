@@ -149,61 +149,14 @@ main.write_text(s)
 
 csvfile=root/"app/src/main/java/com/iceinventory/onhand/CsvUtils.java"
 c=csvfile.read_text()
-old='''    public static List<String> parseLine(String line) {
-        ArrayList<String> out = new ArrayList<>();
-        StringBuilder cur = new StringBuilder();
-        boolean quoted = false;
-        for (int i=0;i<line.length();i++) {
-            char ch=line.charAt(i);
-            if (ch=='"') {
-                if (quoted && i+1<line.length() && line.charAt(i+1)=='"') {
-                    cur.append('"');
-                    i++;
-                } else {
-                    quoted=!quoted;
-                }
-            } else if (ch==',' && !quoted) {
-                out.add(cur.toString());
-                cur.setLength(0);
-            } else {
-                cur.append(ch);
-            }
-        }
-        out.add(cur.toString());
-        return out;
-    }
-'''
-new='''    public static List<String> parseLine(String line) {
-        return parseLine(line, ',');
-    }
-
-    public static List<String> parseLine(String line, char delimiter) {
-        ArrayList<String> out = new ArrayList<>();
-        StringBuilder cur = new StringBuilder();
-        boolean quoted = false;
-        for (int i=0;i<line.length();i++) {
-            char ch=line.charAt(i);
-            if (ch=='"') {
-                if (quoted && i+1<line.length() && line.charAt(i+1)=='"') {
-                    cur.append('"');
-                    i++;
-                } else {
-                    quoted=!quoted;
-                }
-            } else if (ch==delimiter && !quoted) {
-                out.add(cur.toString());
-                cur.setLength(0);
-            } else {
-                cur.append(ch);
-            }
-        }
-        out.add(cur.toString());
-        return out;
-    }
-'''
-if c.count(old)!=1:
-    raise SystemExit("CSV parser implementation missing or ambiguous")
-csvfile.write_text(c.replace(old,new,1))
+signature="    public static List<String> parseLine(String line) {"
+if c.count(signature)!=1:
+    raise SystemExit("CSV parser signature missing or ambiguous")
+c=c.replace(signature,"    public static List<String> parseLine(String line) {\n        return parseLine(line, ',');\n    }\n\n    public static List<String> parseLine(String line, char delimiter) {",1)
+branch="} else if (ch==',' && !quoted) {"
+if c.count(branch)!=1:
+    raise SystemExit("CSV delimiter branch missing or ambiguous")
+csvfile.write_text(c.replace(branch,"} else if (ch==delimiter && !quoted) {",1))
 
 dbfile = root / "app/src/main/java/com/iceinventory/onhand/InventoryDb.java"
 d = dbfile.read_text()
