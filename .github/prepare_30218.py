@@ -40,10 +40,10 @@ if "import android.database.Cursor;" not in s:
 
 match = re.search(r"    private void readImport\s*\(Uri uri\)\s*\{", s)
 start = match.start() if match else -1
-end_match = re.search(r"^\s*private\s+int\s+importRow\s*\(", s[start:] if start >= 0 else "", re.MULTILINE)
+end_match = re.search(r"^\s*private\s+void\s+showError\s*\(", s[start:] if start >= 0 else "", re.MULTILINE)
 end = start + end_match.start() if start >= 0 and end_match else -1
 if start < 0 or end < 0:
-    raise SystemExit("Import parser boundaries missing (readImport="+str(start)+", importRow="+str(end)+")")
+    raise SystemExit("Import parser boundaries missing (readImport="+str(start)+", showError="+str(end)+")")
 new_parser = '''    private static final class ImportedRow {
         String barcode,description,price,location;
         int quantity;
