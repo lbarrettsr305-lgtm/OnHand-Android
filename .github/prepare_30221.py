@@ -4,6 +4,15 @@ import runpy
 
 root=Path(__file__).resolve().parent.parent
 workflow=root/".github/workflows/build-apk.yml"
+w=workflow.read_text()
+for new,old in [
+    ("Prepare and verify 3.0.221 import location prompt","Prepare and verify 3.0.220 external scanner flow"),
+    (".github/prepare_30221.py",".github/prepare_30220.py"),
+    ("iCE-Onhand-Inventory-3.0.221","iCE-Onhand-Inventory-3.0.220"),
+]:
+    if new not in w: raise SystemExit("3.0.221 workflow seed missing: "+new)
+    w=w.replace(new,old)
+workflow.write_text(w)
 runpy.run_path(str(root/".github/prepare_30220.py"),run_name="__main__")
 w=workflow.read_text()
 for old,new in [
