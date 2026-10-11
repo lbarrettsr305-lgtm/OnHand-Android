@@ -23,8 +23,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.222 clean Fleet Feet batch export
-        run: python3 .github/prepare_30222.py
+      - name: Prepare and verify 3.0.223 store-user-match report filenames
+        run: python3 .github/prepare_30223.py
 
       - name: Restore permanent signing keystore
         env:
@@ -65,13 +65,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.222.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.223.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.222.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.223.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.222-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.222.apk
+          name: iCE-Onhand-Inventory-3.0.223-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.223.apk
           if-no-files-found: error
