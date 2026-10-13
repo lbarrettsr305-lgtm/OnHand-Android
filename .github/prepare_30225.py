@@ -11,7 +11,7 @@ w = workflow.read_text()
 for new, old, expected in [
     ("Prepare and verify 3.0.225 start count import label", "Prepare and verify 3.0.224 replacement location and export names", 1),
     (".github/prepare_30225.py", ".github/prepare_30224.py", 1),
-    ("iCE-Onhand-Inventory-3.0.225", "iCE-Onhand-Inventory-3.0.224", 3),
+    ("iCE-Onhand-Inventory-3.0.225", "iCE-Onhand-Inventory-3.0.224", 4),
 ]:
     if w.count(new) != expected:
         raise SystemExit("3.0.225 workflow marker missing or ambiguous: " + new)
@@ -24,7 +24,7 @@ w = workflow.read_text()
 for old, new, expected in [
     ("Prepare and verify 3.0.224 replacement location and export names", "Prepare and verify 3.0.225 start count import label", 1),
     (".github/prepare_30224.py", ".github/prepare_30225.py", 1),
-    ("iCE-Onhand-Inventory-3.0.224", "iCE-Onhand-Inventory-3.0.225", 3),
+    ("iCE-Onhand-Inventory-3.0.224", "iCE-Onhand-Inventory-3.0.225", 4),
 ]:
     if w.count(old) != expected:
         raise SystemExit("3.0.224 workflow marker missing or ambiguous: " + old)
