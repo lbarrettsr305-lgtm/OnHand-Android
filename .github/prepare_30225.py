@@ -4,17 +4,31 @@ import runpy
 
 root = Path(__file__).resolve().parent.parent
 workflow = root / ".github/workflows/build-apk.yml"
+
+# The preceding release scripts rebuild the source from the prior release.
+# Temporarily restore their expected workflow markers, then advance again.
+w = workflow.read_text()
+for new, old, expected in [
+    ("Prepare and verify 3.0.225 start count import label", "Prepare and verify 3.0.224 replacement location and export names", 1),
+    (".github/prepare_30225.py", ".github/prepare_30224.py", 1),
+    ("iCE-Onhand-Inventory-3.0.225", "iCE-Onhand-Inventory-3.0.224", 3),
+]:
+    if w.count(new) != expected:
+        raise SystemExit("3.0.225 workflow marker missing or ambiguous: " + new)
+    w = w.replace(new, old)
+workflow.write_text(w)
+
 runpy.run_path(str(root / ".github/prepare_30224.py"), run_name="__main__")
 
 w = workflow.read_text()
-for old, new in [
-    ("Prepare and verify 3.0.224 replacement location and export names", "Prepare and verify 3.0.225 start count import label"),
-    (".github/prepare_30224.py", ".github/prepare_30225.py"),
-    ("iCE-Onhand-Inventory-3.0.224", "iCE-Onhand-Inventory-3.0.225"),
+for old, new, expected in [
+    ("Prepare and verify 3.0.224 replacement location and export names", "Prepare and verify 3.0.225 start count import label", 1),
+    (".github/prepare_30224.py", ".github/prepare_30225.py", 1),
+    ("iCE-Onhand-Inventory-3.0.224", "iCE-Onhand-Inventory-3.0.225", 3),
 ]:
-    if w.count(old) != 1:
+    if w.count(old) != expected:
         raise SystemExit("3.0.224 workflow marker missing or ambiguous: " + old)
-    w = w.replace(old, new, 1)
+    w = w.replace(old, new)
 workflow.write_text(w)
 
 gradle = root / "app/build.gradle"
