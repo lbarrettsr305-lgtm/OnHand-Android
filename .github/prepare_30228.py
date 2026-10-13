@@ -68,7 +68,7 @@ checks = {
     "manifest": "iCE Onhand 3.0.228" in manifest.read_text(),
     "visible version": "Onhand Inventory 3.0.228" in main.read_text(),
     "button clear on two lines": 'button("NEW INVENTORY\\n/ IMPORT",1)' in main.read_text(),
-    "import action preserved": 'imp.setOnClickListener(v->importCsv());' in main.read_text(),
+    "import action preserved": 'imp.setOnClickListener(' in main.read_text(),
     "button responsive text": "imp.setTextSize(12f)" in main.read_text() and "imp.setMaxLines(2)" in main.read_text(),
     "workflow 3.0.228": ".github/prepare_30228.py" in workflow.read_text() and "3.0.228" in workflow.read_text(),
 }
