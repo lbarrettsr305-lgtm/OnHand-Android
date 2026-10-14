@@ -38,6 +38,9 @@ main.write_text(s.replace("Onhand Inventory 3.0.231","Onhand Inventory 3.0.232",
 
 batch=root/"app/src/main/java/com/iceinventory/onhand/BatchMergeActivity.java"
 s=batch.read_text()
+if "import android.app.AlertDialog;" not in s:
+    if "import android.app.Activity;" not in s:raise SystemExit("Batch merge Activity import missing")
+    s=s.replace("import android.app.Activity;","import android.app.Activity;\\nimport android.app.AlertDialog;",1)
 
 def once(old,new,label):
     global s
