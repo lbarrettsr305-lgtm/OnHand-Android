@@ -90,9 +90,9 @@ init='        mode=getIntent().getStringExtra(EXTRA_MODE);'
 if f.count(init)!=1:raise SystemExit("FormatConfig mode initialization missing")
 f=f.replace(init,init+'\n        templateSetupOnly=getIntent().getBooleanExtra("template_setup_only",false);',1)
 
-old_save='Button save=button(MODE_EXPORT.equals(mode)?"CONTINUE TO SAVE":"SAVE FORMAT");'
-new_save='Button save=button(MODE_EXPORT.equals(mode)?(templateSetupOnly?"SAVE EXPORT TEMPLATE":"CONTINUE TO SAVE"):"SAVE FORMAT");'
-if f.count(old_save)!=1:raise SystemExit("Export template button caption missing")
+old_save='"CONTINUE TO SAVE"'
+new_save='(templateSetupOnly?"SAVE EXPORT TEMPLATE":"CONTINUE TO SAVE")'
+if f.count(old_save)!=1:raise SystemExit("Export template button caption missing (found "+str(f.count(old_save))+")")
 f=f.replace(old_save,new_save,1)
 fmt.write_text(f)
 
