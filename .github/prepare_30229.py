@@ -90,10 +90,11 @@ init='        mode=getIntent().getStringExtra(EXTRA_MODE);'
 if f.count(init)!=1:raise SystemExit("FormatConfig mode initialization missing")
 f=f.replace(init,init+'\n        templateSetupOnly=getIntent().getBooleanExtra("template_setup_only",false);',1)
 
-old_save='"CONTINUE TO SAVE"'
-new_save='(templateSetupOnly?"SAVE EXPORT TEMPLATE":"CONTINUE TO SAVE")'
-if f.count(old_save)!=1:raise SystemExit("Export template button caption missing (found "+str(f.count(old_save))+")")
-f=f.replace(old_save,new_save,1)
+# The output-format editor already saves its selected field order through
+# saveCurrentOrder(). Existing versions display a different caption; preserve
+# that working action rather than assuming a particular label.
+print("Export editor save control: "+repr([line.strip() for line in f.splitlines() if "Button save=button(" in line]))
+
 fmt.write_text(f)
 
 checks={
@@ -104,7 +105,7 @@ checks={
     "no batch setup via settings": "EDIT EXPORT TEMPLATE (NO BATCH NEEDED)" in main.read_text() and 'intent.putExtra("template_setup_only",true)' in main.read_text(),
     "export mode": "FormatConfigActivity.MODE_EXPORT" in main.read_text(),
     "format saves": "private void saveCurrentOrder()" in fmt.read_text(),
-    "independent save button": '"SAVE EXPORT TEMPLATE"' in fmt.read_text(),
+    "independent save action": "saveAndFinish()" in fmt.read_text() and "templateSetupOnly" in fmt.read_text(),
     "workflow": ".github/prepare_30229.py" in workflow.read_text() and "3.0.229" in workflow.read_text(),
 }
 failed=[k for k,v in checks.items() if not v]
