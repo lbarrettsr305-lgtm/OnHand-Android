@@ -218,7 +218,7 @@ checks={
     "audit shows aliases": "VICTORIA ITEM NUMBER / BARCODE ALIAS AUDIT" in s,
     "user confirmation": "EXPORT GROUPED TOTALS" in s,
     "master and user batches preserved": "readOne(Uri uri)" in s and "String key=code+" in s,
-    "Fleet Feet export remains": "new String[]{\\"quantity\\",\\"barcode\\",\\"description\\",\\"item_number\\",\\"size\\"}" in (root/"app/src/main/java/com/iceinventory/onhand/FormatConfigActivity.java").read_text(),
+    "Fleet Feet export remains": 'new String[]{"quantity","barcode","description","item_number","size"}' in (root/"app/src/main/java/com/iceinventory/onhand/FormatConfigActivity.java").read_text(),
     "workflow": ".github/prepare_30232.py" in workflow.read_text() and "3.0.232" in workflow.read_text(),
 }
 failed=[key for key,value in checks.items() if not value]
