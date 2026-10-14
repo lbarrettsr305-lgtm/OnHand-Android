@@ -23,8 +23,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.233 recurring Fleet Feet RGIS customer import
-        run: python3 .github/prepare_30233.py
+      - name: Prepare and verify 3.0.234 Fleet Feet headerless Barcode Qty customer report
+        run: python3 .github/prepare_30234.py
 
       - name: Restore permanent signing keystore
         env:
@@ -65,13 +65,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.233.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.234.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.233.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.234.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.233-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.233.apk
+          name: iCE-Onhand-Inventory-3.0.234-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.234.apk
           if-no-files-found: error
