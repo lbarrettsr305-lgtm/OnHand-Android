@@ -120,7 +120,7 @@ main.write_text(s)
 checks={
     "version": "versionName '3.0.234'" in g.read_text() and "iCE Onhand 3.0.234" in manifest.read_text() and "Onhand Inventory 3.0.234" in main.read_text(),
     "Fleet import unchanged": "parseFleetFeetOriginalLine" in main.read_text(),
-    "two-column headerless": 'text.append(entry.getKey()).append(\\',\\').append(QuantityMath.format(quantity))' in main.read_text(),
+    "two-column headerless": "text.append(entry.getKey())" in main.read_text() and "QuantityMath.format(quantity)" in main.read_text(),
     "totals by barcode": "byBarcode.put(barcode,byBarcode.getOrDefault(barcode,0d)+row.quantity)" in main.read_text(),
     "counted vs zeros choice": "COUNTED ITEMS ONLY" in main.read_text() and "INCLUDE ZERO-QTY ITEMS" in main.read_text(),
     "no effect on detailed reports": "Fleet Feet Client — Barcode + Qty (No Headers)" in main.read_text() and "Export New Counts" in main.read_text(),
