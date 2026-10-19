@@ -141,7 +141,9 @@ methods=r'''    private boolean isVictoriaCoffeeInventory(){
         }
         java.util.ArrayList<String> locations=new java.util.ArrayList<>();
         for(String name:db.locations())
-            if(zone.equals(victoriaZone(name)))locations.add(name);
+            if(zone.equals(victoriaZone(name))&&
+               (!"OTHER / UNMAPPED".equals(zone)||quantities.containsKey(name)))
+                locations.add(name);
         for(String name:quantities.keySet())
             if(zone.equals(victoriaZone(name))&&!locations.contains(name))locations.add(name);
         if(locations.isEmpty()){
@@ -159,6 +161,7 @@ methods=r'''    private boolean isVictoriaCoffeeInventory(){
             lp.setMargins(0,0,0,dp(5));layout.addView(pick,lp);
             pick.setOnClickListener(v->{
                 if(popup[0]!=null)popup[0].dismiss();
+                if(victoriaMapDialog!=null)victoriaMapDialog.dismiss();
                 submitCountingLocation(loc);
             });
         }
@@ -168,6 +171,7 @@ methods=r'''    private boolean isVictoriaCoffeeInventory(){
         popup[0].show();
     }
 
+    private AlertDialog victoriaMapDialog;
     private void showVictoriaFloorPlan(){
         if(!isVictoriaCoffeeInventory()){toast("Victoria Coffee inventory only");return;}
         ensureVictoriaCoffeeLocations();
@@ -215,8 +219,11 @@ methods=r'''    private boolean isVictoriaCoffeeInventory(){
                 map.addView(row);
             }
         }
-        new AlertDialog.Builder(this).setTitle("Victoria Coffee • Floor Plan")
-            .setView(scroll).setPositiveButton("CLOSE",null).show();
+        victoriaMapDialog=new AlertDialog.Builder(this)
+            .setTitle("Victoria Coffee • Floor Plan")
+            .setView(scroll).setPositiveButton("CLOSE",null).create();
+        victoriaMapDialog.setOnDismissListener(x->victoriaMapDialog=null);
+        victoriaMapDialog.show();
     }
 
 '''
