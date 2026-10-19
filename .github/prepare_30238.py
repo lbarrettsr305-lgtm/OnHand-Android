@@ -116,8 +116,8 @@ methods=r'''    private boolean isVictoriaCoffeeInventory(){
         return "OTHER / UNMAPPED";
     }
 
-    private int victoriaZoneTotal(String zone){
-        int sum=0;
+    private double victoriaZoneTotal(String zone){
+        double sum=0;
         for(InventoryDb.Row item:db.items(sessionId))
             if(zone.equals(victoriaZone(item.location)))sum+=item.quantity;
         return sum;
@@ -130,14 +130,14 @@ methods=r'''    private boolean isVictoriaCoffeeInventory(){
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(dp(12),dp(8),dp(12),dp(10));
         scroller.addView(layout);
-        TextView info=text("ZONE QUANTITY: "+victoriaZoneTotal(zone)+
+        TextView info=text("ZONE QUANTITY: "+QuantityMath.format(victoriaZoneTotal(zone))+
            "\nSelect the exact location to begin counting. Existing counts are retained.",15,gold(),true);
         info.setPadding(0,0,0,dp(8));
         layout.addView(info);
-        java.util.LinkedHashMap<String,Integer> quantities=new java.util.LinkedHashMap<>();
+        java.util.LinkedHashMap<String,Double> quantities=new java.util.LinkedHashMap<>();
         for(InventoryDb.Row item:db.items(sessionId)){
             String k=item.location==null?"Main":item.location.trim();
-            quantities.put(k,quantities.getOrDefault(k,0)+item.quantity);
+            quantities.put(k,quantities.getOrDefault(k,0d)+item.quantity);
         }
         java.util.ArrayList<String> locations=new java.util.ArrayList<>();
         for(String name:db.locations())
@@ -152,8 +152,8 @@ methods=r'''    private boolean isVictoriaCoffeeInventory(){
         }
         final AlertDialog[] popup=new AlertDialog[1];
         for(String loc:locations){
-            int quantity=quantities.getOrDefault(loc,0);
-            Button pick=button(loc+"\nQTY "+quantity+"   •   SELECT LOCATION",1);
+            double quantity=quantities.getOrDefault(loc,0d);
+            Button pick=button(loc+"\nQTY "+QuantityMath.format(quantity)+"   •   SELECT LOCATION",1);
             pick.setSingleLine(false);pick.setMaxLines(2);
             pick.setTextSize(13);pick.setGravity(android.view.Gravity.CENTER);
             LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(
@@ -180,12 +180,12 @@ methods=r'''    private boolean isVictoriaCoffeeInventory(){
         map.setOrientation(LinearLayout.VERTICAL);
         map.setPadding(dp(10),dp(10),dp(10),dp(12));
         scroll.addView(map);
-        int grand=0;for(InventoryDb.Row item:db.items(sessionId))grand+=item.quantity;
+        double grand=0;for(InventoryDb.Row item:db.items(sessionId))grand+=item.quantity;
         TextView banner=text("VICTORIA COFFEE\nWAREHOUSE & SHOWROOM LOCATION MAP",18,gold(),true);
         banner.setGravity(Gravity.CENTER);banner.setPadding(0,dp(6),0,dp(6));map.addView(banner);
         TextView accuracy=text("SCHEMATIC / NOT TO SCALE — verify physical positions before attaching rack labels.",13,Color.WHITE,false);
         accuracy.setGravity(Gravity.CENTER);map.addView(accuracy);
-        TextView total=text("ALL LOCATIONS • GRAND QTY "+grand,19,gold(),true);
+        TextView total=text("ALL LOCATIONS • GRAND QTY "+QuantityMath.format(grand),19,gold(),true);
         total.setGravity(Gravity.CENTER);total.setPadding(0,dp(10),0,dp(10));map.addView(total);
 
         String[][] blocks={
@@ -204,7 +204,7 @@ methods=r'''    private boolean isVictoriaCoffeeInventory(){
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 for(int j=i;j<Math.min(i+2,group.length);j++){
                     final String zone=group[j];
-                    Button tile=button(zone+"\nQTY "+victoriaZoneTotal(zone),1);
+                    Button tile=button(zone+"\nQTY "+QuantityMath.format(victoriaZoneTotal(zone)),1);
                     tile.setTextSize(13);tile.setSingleLine(false);tile.setMaxLines(3);
                     tile.setGravity(Gravity.CENTER);
                     LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(86),1f);
@@ -321,7 +321,7 @@ checks={
  "all areas":all(x in s for x in ["Under-Stair-Center","Supply-Shelves-White","Utility-Fridge","Equipment-Staging-Cart-01","Display-Shelves-Right","Demo-Floor-05"]),
  "overhead":'index<=10' in s and '"Overhead-%02d"' in s,
  "floor map":'VICTORIA COFFEE — VISUAL FLOOR PLAN' in s and 'SCHEMATIC / NOT TO SCALE' in s,
- "count reconciliation":'OTHER / UNMAPPED' in s and 'int grand=0;for(InventoryDb.Row item:db.items(sessionId))grand+=item.quantity;' in s,
+ "count reconciliation":'OTHER / UNMAPPED' in s and 'double grand=0;for(InventoryDb.Row item:db.items(sessionId))grand+=item.quantity;' in s,
  "physical scanner preserves exact labels":'isVictoriaSpecialLocation(scanned)' in s,
  "rack bays preserved":'warehouseSlotName(bay,tier,pallet)' in s and 'showWarehouseBaySetup()' in s,
  "other workflows":'Fleet Feet Client — Barcode + Qty (No Headers)' in s and 'Petrosoft' in s and 'Victoria' in s,
