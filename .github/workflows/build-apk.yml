@@ -3,9 +3,9 @@ name: Build OnHand APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, fix/30236-bluetooth-location-choice ]
+    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master ]
   pull_request:
-    branches: [ main, fix/30236-bluetooth-location-choice ]
+    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master ]
 
 jobs:
   build:
@@ -23,8 +23,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.236 Bluetooth location scanning and readable buttons
-        run: python3 .github/prepare_30236.py
+      - name: Prepare and verify 3.0.237 wall aisle and warehouse bay locations
+        run: python3 .github/prepare_30237.py
 
       - name: Restore permanent signing keystore
         env:
@@ -65,13 +65,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.236.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.237.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.236.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.237.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.236-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.236.apk
+          name: iCE-Onhand-Inventory-3.0.237-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.237.apk
           if-no-files-found: error
