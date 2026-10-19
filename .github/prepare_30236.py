@@ -89,7 +89,7 @@ once('''        Button scanMain=button("SCAN MAIN LOCATION LABEL",1);
 once('''        Button useMain=button("USE MAIN LOCATION ONLY — START COUNTING",1);
         useMain.setOnClickListener(v->submitMainOnlyLocation(mainOnlyInput.getText().toString()));
         panel.addView(useMain,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(56)));''',
-'''        Button useMain=button("USE MAIN LOCATION ONLY\nSTART COUNTING",1);
+'''        Button useMain=button("USE MAIN LOCATION ONLY\\nSTART COUNTING",1);
         useMain.setSingleLine(false);
         useMain.setMaxLines(2);
         useMain.setTextSize(14);
