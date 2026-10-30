@@ -18,6 +18,17 @@ def replace_once(path, old, new, label):
 
 # Reapply the validated 3.0.243 preparation chain from its clean release base.
 if os.environ.get("ONHAND_PREPARED_30243") != "1":
+    w = workflow.read_text()
+    for current, previous, expected in [
+        ("Prepare and verify 3.0.244 negative quantity safeguards",
+         "Prepare and verify 3.0.243 Victoria counted batch workflow", 1),
+        (".github/prepare_30244.py", ".github/prepare_30243.py", 1),
+        ("iCE-Onhand-Inventory-3.0.244", "iCE-Onhand-Inventory-3.0.243", 4),
+    ]:
+        if w.count(current) != expected:
+            raise SystemExit("3.0.244 workflow marker missing: " + current)
+        w = w.replace(current, previous)
+    workflow.write_text(w)
     runpy.run_path(str(root / ".github/prepare_30243.py"), run_name="__main__")
 
 for old, new, expected in [
