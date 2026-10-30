@@ -3,9 +3,9 @@ name: Build OnHand APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master, feature/30238-victoria-coffee-locations, feature/30243-victoria-count-batches, feature/30244-negative-quantity-verification ]
+    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master, feature/30238-victoria-coffee-locations, feature/30243-victoria-count-batches, feature/30244-negative-quantity-verification, feature/30245-incremental-counter-batches ]
   pull_request:
-    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master, feature/30238-victoria-coffee-locations, feature/30243-victoria-count-batches, feature/30244-negative-quantity-verification ]
+    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master, feature/30238-victoria-coffee-locations, feature/30243-victoria-count-batches, feature/30244-negative-quantity-verification, feature/30245-incremental-counter-batches ]
 
 jobs:
   build:
@@ -23,8 +23,8 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.244 negative quantity safeguards
-        run: python3 .github/prepare_30244.py
+      - name: Prepare and verify 3.0.245 incremental counter batches
+        run: python3 .github/prepare_30245.py
 
       - name: Restore permanent signing keystore
         env:
@@ -65,13 +65,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.244.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.245.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.244.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.245.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.244-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.244.apk
+          name: iCE-Onhand-Inventory-3.0.245-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.245.apk
           if-no-files-found: error
