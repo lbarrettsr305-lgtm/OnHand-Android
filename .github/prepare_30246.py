@@ -27,7 +27,7 @@ replace_once(root / "app/src/main/AndroidManifest.xml", "iCE Onhand 3.0.245", "i
 replace_once(root / "app/src/main/java/com/iceinventory/onhand/MainActivity.java",
              "Onhand Inventory 3.0.245", "Onhand Inventory 3.0.246", "Main screen version")
 activity = (root / "app/src/main/java/com/iceinventory/onhand/MonthlyInventoryActivity.java").read_text()
-if "3. CREATE COUNT FILE FOR COUNTERS" not in activity or "EXPORT / SHARE COUNT FILE TO COUNTERS" not in activity:
+if "2. CREATE COUNT FILE FOR COUNTERS" not in activity or "3. EXPORT / SHARE COUNT FILE TO COUNTERS" not in activity:
     raise SystemExit("Petrosoft direct counter export flow is missing")
 if "Test Scan on This Device" in activity or "confirmTestScan()" in activity:
     raise SystemExit("Obsolete Petrosoft test-scan flow remains")
