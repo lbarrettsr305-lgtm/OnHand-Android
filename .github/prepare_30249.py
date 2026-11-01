@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare OnHand 3.0.249 with inventory regression protections."""
+"""Prepare OnHand 3.0.250 with inventory regression protections."""
 from pathlib import Path
 import base64
 import io
@@ -26,10 +26,10 @@ main = app / "src/main/java/com/iceinventory/onhand/MainActivity.java"
 batch = app / "src/main/java/com/iceinventory/onhand/BatchQuantityReportActivity.java"
 qty = app / "src/main/java/com/iceinventory/onhand/QuantityMath.java"
 
-replace_once(app / "build.gradle", "versionCode 30245", "versionCode 30249", "Gradle version code")
-replace_once(app / "build.gradle", "versionName '3.0.245'", "versionName '3.0.249'", "Gradle version name")
-replace_once(app / "src/main/AndroidManifest.xml", "iCE Onhand 3.0.245", "iCE Onhand 3.0.249", "App label")
-replace_once(main, "Onhand Inventory 3.0.245", "Onhand Inventory 3.0.249", "Main screen version")
+replace_once(app / "build.gradle", "versionCode 30245", "versionCode 30250", "Gradle version code")
+replace_once(app / "build.gradle", "versionName '3.0.245'", "versionName '3.0.250'", "Gradle version name")
+replace_once(app / "src/main/AndroidManifest.xml", "iCE Onhand 3.0.245", "iCE Onhand 3.0.250", "App label")
+replace_once(main, "Onhand Inventory 3.0.245", "Onhand Inventory 3.0.250", "Main screen version")
 
 location_map = '''package com.iceinventory.onhand;
 
@@ -87,8 +87,13 @@ public final class CigaretteCountRules {
     public static boolean isCigarette(String category,String location) {
         String c=category==null?"":category.trim().toUpperCase(Locale.US);
         String l=location==null?"":location.trim().toUpperCase(Locale.US);
+        // Older builds saved shelf UPCs as their first numeric segment (e.g. 221-221 -> 221).
+        // Every listed 221-225 prefix identifies one of the cigarette shelf locations.
+        boolean legacyCigShelf = l.matches("(?i)^(221|222|223|224|225)$")
+                || l.matches("(?i)^22[1-5]-22[1-8]$");
         return c.contains("CIGARETTE") || c.equals("CIG") || c.startsWith("CIG ")
-                || l.startsWith("CIG SHELF") || l.startsWith("CIGARETTE SHELF");
+                || l.startsWith("CIG SHELF") || l.startsWith("CIGARETTE SHELF")
+                || legacyCigShelf;
     }
 }
 '''
@@ -211,14 +216,14 @@ if "testImplementation 'junit:junit:4.13.2'" not in g:
     build.write_text(g)
 tests = app / "src/test/java/com/iceinventory/onhand/InventoryRegressionTest.java"
 tests.parent.mkdir(parents=True,exist_ok=True)
-tests.write_text('''package com.iceinventory.onhand;\n\nimport org.junit.Test;\nimport static org.junit.Assert.*;\n\npublic class InventoryRegressionTest {\n    @Test public void caseMultiplierKeepsWorkingCalculation(){\n        assertEquals(200d,QuantityMath.multiplyCases(10d,20d),0.000001);\n        assertEquals(240d,QuantityMath.multiplyCases(24d,10d),0.000001);\n    }\n    @Test public void fiveDigitLocationSuffixIsPreservedAndMapped(){\n        assertEquals("COOLER DOORS",LocationBarcodeMap.description("CHEV2620","50-50"));\n        assertEquals("50-50",LocationBarcodeMap.barcode("CHEV2620","COOLER DOORS"));\n        assertEquals("CHECKOUT-9110MAIN LOC",LocationBarcodeMap.description("CHEV2620","91-1010"));\n        assertTrue(LocationBarcodeMap.isTruncatedCode("CHEV2620","91"));\n    }\n    @Test public void cigaretteShelfCountsEvenWhenCategoryIsPopulated(){\n        assertTrue(CigaretteCountRules.isCigarette("Tobacco","Cig Shelf-3"));\n        assertTrue(CigaretteCountRules.isCigarette("Cigarettes","Checkout"));\n        assertFalse(CigaretteCountRules.isCigarette("Beverages","Cooler Doors"));\n    }\n    @Test public void batchFilenameReportsCounterName(){\n        assertEquals("JoseFad",BatchFilename.user("ONHAND CHEV2620_10-30-2026-JoseFad-01.txt"));\n        assertEquals("Lbsr",BatchFilename.user("CHEV2620 10-31-2026-Lbsr-01.txt"));\n        assertEquals("Robert",BatchFilename.user("ON HAND VICTORIA-10-29-2026-Robert-Batch01.txt"));\n    }\n}\n''')
+tests.write_text('''package com.iceinventory.onhand;\n\nimport org.junit.Test;\nimport static org.junit.Assert.*;\n\npublic class InventoryRegressionTest {\n    @Test public void caseMultiplierKeepsWorkingCalculation(){\n        assertEquals(200d,QuantityMath.multiplyCases(10d,20d),0.000001);\n        assertEquals(240d,QuantityMath.multiplyCases(24d,10d),0.000001);\n    }\n    @Test public void fiveDigitLocationSuffixIsPreservedAndMapped(){\n        assertEquals("COOLER DOORS",LocationBarcodeMap.description("CHEV2620","50-50"));\n        assertEquals("50-50",LocationBarcodeMap.barcode("CHEV2620","COOLER DOORS"));\n        assertEquals("CHECKOUT-9110MAIN LOC",LocationBarcodeMap.description("CHEV2620","91-1010"));\n        assertTrue(LocationBarcodeMap.isTruncatedCode("CHEV2620","91"));\n    }\n    @Test public void cigaretteShelfCountsEvenWhenCategoryIsPopulated(){\n        assertTrue(CigaretteCountRules.isCigarette("Tobacco","Cig Shelf-3"));\n        assertTrue(CigaretteCountRules.isCigarette("Cigarettes","Checkout"));\n        assertTrue(CigaretteCountRules.isCigarette("","221"));\n        assertTrue(CigaretteCountRules.isCigarette("","224"));\n        assertTrue(CigaretteCountRules.isCigarette("","225"));\n        assertTrue(CigaretteCountRules.isCigarette("","225-228"));\n        assertFalse(CigaretteCountRules.isCigarette("","50"));\n        assertFalse(CigaretteCountRules.isCigarette("Beverages","Cooler Doors"));\n    }\n    @Test public void batchFilenameReportsCounterName(){\n        assertEquals("JoseFad",BatchFilename.user("ONHAND CHEV2620_10-30-2026-JoseFad-01.txt"));\n        assertEquals("Lbsr",BatchFilename.user("CHEV2620 10-31-2026-Lbsr-01.txt"));\n        assertEquals("Robert",BatchFilename.user("ON HAND VICTORIA-10-29-2026-Robert-Batch01.txt"));\n    }\n}\n''')
 
 # Add exact version and mandatory CI tests.
 manifest=app / "src/main/AndroidManifest.xml"
-if "iCE Onhand 3.0.249" not in manifest.read_text():raise SystemExit("Manifest version was not updated")
+if "iCE Onhand 3.0.250" not in manifest.read_text():raise SystemExit("Manifest version was not updated")
 main_source=main.read_text();batch_source=batch.read_text()
 checks={
-    "version": "versionCode 30249" in build.read_text() and "versionName '3.0.249'" in build.read_text(),
+    "version": "versionCode 30250" in build.read_text() and "versionName '3.0.250'" in build.read_text(),
     "scan resolves mapped location": "String mappedLocation=locationDescriptionForBarcode(rawCode);" in main_source,
     "location banner includes mapped barcode": "code+\" — \"+description" in main_source,
     "cigarette summary uses location-aware rule": "CigaretteCountRules.isCigarette(category,rowLocation)" in main_source,
@@ -228,5 +233,5 @@ checks={
     "location regression test": "fiveDigitLocationSuffixIsPreservedAndMapped" in tests.read_text(),
 }
 failed=[name for name,ok in checks.items() if not ok]
-if failed:raise SystemExit("3.0.249 regression preparation failed: "+", ".join(failed))
-print("Prepared OnHand 3.0.249 regression fixes and tests")
+if failed:raise SystemExit("3.0.250 regression preparation failed: "+", ".join(failed))
+print("Prepared OnHand 3.0.250 regression fixes and tests")
