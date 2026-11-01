@@ -7,6 +7,7 @@ import tarfile
 
 root = Path(__file__).resolve().parents[1]
 # Include legacy numeric shelf-location prefixes in the live cigarette total.
+# Rebuild step remains here so this branch runs the corrected verifier.
 archive_path = root / ".github/onhand-30248-source.tgz.b64"
 raw = base64.b64decode("".join(archive_path.read_text().split()), validate=True)
 with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
