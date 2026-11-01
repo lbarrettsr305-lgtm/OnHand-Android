@@ -23,8 +23,18 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.191 scan feedback and remembered location
-        run: python3 .github/prepare_30191.py
+      - name: Install the prepared 3.0.252 app source
+        run: |
+          python3 - <<'PY'
+          import base64, io, tarfile
+          from pathlib import Path
+          archive = base64.b64decode(Path('.github/onhand-30252-source.tgz.b64').read_bytes())
+          with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as source:
+              for member in source.getmembers():
+                  if member.name.startswith('/') or '..' in Path(member.name).parts:
+                      raise SystemExit(f'Unsafe source archive path: {member.name}')
+              source.extractall('.', filter='data')
+          PY
 
       - name: Restore permanent signing keystore
         env:
@@ -62,16 +72,16 @@ jobs:
           ONHAND_STORE_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
           ONHAND_KEY_ALIAS: ${{ secrets.ONHAND_KEY_ALIAS }}
           ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
-        run: gradle :app:assembleRelease --stacktrace
+        run: gradle :app:testReleaseUnitTest :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.191.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.252.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.191.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.252.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.191-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.191.apk
+          name: iCE-Onhand-Inventory-3.0.252-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.252.apk
           if-no-files-found: error
