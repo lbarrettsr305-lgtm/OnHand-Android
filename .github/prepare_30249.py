@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare OnHand 3.0.250 with inventory regression protections."""
+"""Prepare OnHand 3.0.251 with inventory regression protections."""
 from pathlib import Path
 import base64
 import io
@@ -28,10 +28,10 @@ main = app / "src/main/java/com/iceinventory/onhand/MainActivity.java"
 batch = app / "src/main/java/com/iceinventory/onhand/BatchQuantityReportActivity.java"
 qty = app / "src/main/java/com/iceinventory/onhand/QuantityMath.java"
 
-replace_once(app / "build.gradle", "versionCode 30245", "versionCode 30250", "Gradle version code")
-replace_once(app / "build.gradle", "versionName '3.0.245'", "versionName '3.0.250'", "Gradle version name")
-replace_once(app / "src/main/AndroidManifest.xml", "iCE Onhand 3.0.245", "iCE Onhand 3.0.250", "App label")
-replace_once(main, "Onhand Inventory 3.0.245", "Onhand Inventory 3.0.250", "Main screen version")
+replace_once(app / "build.gradle", "versionCode 30245", "versionCode 30251", "Gradle version code")
+replace_once(app / "build.gradle", "versionName '3.0.245'", "versionName '3.0.251'", "Gradle version name")
+replace_once(app / "src/main/AndroidManifest.xml", "iCE Onhand 3.0.245", "iCE Onhand 3.0.251", "App label")
+replace_once(main, "Onhand Inventory 3.0.245", "Onhand Inventory 3.0.251", "Main screen version")
 
 location_map = '''package com.iceinventory.onhand;
 
@@ -220,12 +220,130 @@ tests = app / "src/test/java/com/iceinventory/onhand/InventoryRegressionTest.jav
 tests.parent.mkdir(parents=True,exist_ok=True)
 tests.write_text('''package com.iceinventory.onhand;\n\nimport org.junit.Test;\nimport static org.junit.Assert.*;\n\npublic class InventoryRegressionTest {\n    @Test public void caseMultiplierKeepsWorkingCalculation(){\n        assertEquals(200d,QuantityMath.multiplyCases(10d,20d),0.000001);\n        assertEquals(240d,QuantityMath.multiplyCases(24d,10d),0.000001);\n    }\n    @Test public void fiveDigitLocationSuffixIsPreservedAndMapped(){\n        assertEquals("COOLER DOORS",LocationBarcodeMap.description("CHEV2620","50-50"));\n        assertEquals("50-50",LocationBarcodeMap.barcode("CHEV2620","COOLER DOORS"));\n        assertEquals("CHECKOUT-9110MAIN LOC",LocationBarcodeMap.description("CHEV2620","91-1010"));\n        assertTrue(LocationBarcodeMap.isTruncatedCode("CHEV2620","91"));\n    }\n    @Test public void cigaretteShelfCountsEvenWhenCategoryIsPopulated(){\n        assertTrue(CigaretteCountRules.isCigarette("Tobacco","Cig Shelf-3"));\n        assertTrue(CigaretteCountRules.isCigarette("Cigarettes","Checkout"));\n        assertTrue(CigaretteCountRules.isCigarette("","221"));\n        assertTrue(CigaretteCountRules.isCigarette("","224"));\n        assertTrue(CigaretteCountRules.isCigarette("","225"));\n        assertTrue(CigaretteCountRules.isCigarette("","225-228"));\n        assertFalse(CigaretteCountRules.isCigarette("","50"));\n        assertFalse(CigaretteCountRules.isCigarette("Beverages","Cooler Doors"));\n    }\n    @Test public void batchFilenameReportsCounterName(){\n        assertEquals("JoseFad",BatchFilename.user("ONHAND CHEV2620_10-30-2026-JoseFad-01.txt"));\n        assertEquals("Lbsr",BatchFilename.user("CHEV2620 10-31-2026-Lbsr-01.txt"));\n        assertEquals("Robert",BatchFilename.user("ON HAND VICTORIA-10-29-2026-Robert-Batch01.txt"));\n    }\n}\n''')
 
+# Add Quick Share support for generated exports.
+main = app / "src/main/java/com/iceinventory/onhand/MainActivity.java"
+dialog_old = """        new AlertDialog.Builder(this).setTitle(exportTitle).setMessage(exportMessage).setView(name)
+                .setPositiveButton("Save to Downloads",(d,w)->saveToDownloads(pendingExportExcel?cleanExcelName(name.getText().toString()):(pendingExportInternetOnly?cleanInternetReportName(name.getText().toString()):cleanTextName(name.getText().toString()))))
+                .setNeutralButton("Save to Google Drive",(d,w)->startDocumentExport(pendingExportExcel?cleanExcelName(name.getText().toString()):(pendingExportInternetOnly?cleanInternetReportName(name.getText().toString()):cleanTextName(name.getText().toString()))))
+                .setNegativeButton("Cancel",null).show();"""
+dialog_new = """        LinearLayout exportContent=new LinearLayout(this);exportContent.setOrientation(LinearLayout.VERTICAL);exportContent.setPadding(dp(18),dp(4),dp(18),dp(4));
+        exportContent.addView(name,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(54)));
+        Button shareExport=button("SHARE FILE — QUICK SHARE",2);shareExport.setTypeface(Typeface.DEFAULT,Typeface.BOLD);shareExport.setTextSize(15);
+        exportContent.addView(shareExport,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(56)));
+        AlertDialog exportAlert=new AlertDialog.Builder(this).setTitle(exportTitle).setMessage(exportMessage).setView(exportContent)
+                .setPositiveButton("Save to Downloads",(d,w)->saveToDownloads(pendingExportExcel?cleanExcelName(name.getText().toString()):(pendingExportInternetOnly?cleanInternetReportName(name.getText().toString()):cleanTextName(name.getText().toString()))))
+                .setNeutralButton("Save to Google Drive",(d,w)->startDocumentExport(pendingExportExcel?cleanExcelName(name.getText().toString()):(pendingExportInternetOnly?cleanInternetReportName(name.getText().toString()):cleanTextName(name.getText().toString()))))
+                .setNegativeButton("Cancel",null).create();
+        shareExport.setOnClickListener(v->{
+            String filename=pendingExportExcel?cleanExcelName(name.getText().toString()):(pendingExportInternetOnly?cleanInternetReportName(name.getText().toString()):cleanTextName(name.getText().toString()));
+            exportAlert.dismiss();shareExportFile(filename);
+        });
+        exportAlert.show();"""
+replace_once(main, dialog_old, dialog_new, "Quick Share export dialog")
+share_method = """
+    private void shareExportFile(String filename){
+        try{
+            java.io.File dir=new java.io.File(getCacheDir(),"shared");
+            if(!dir.exists()&&!dir.mkdirs())throw new Exception("Could not prepare the export for sharing");
+            java.io.File file=new java.io.File(dir,filename);
+            String root=dir.getCanonicalPath()+java.io.File.separator;
+            if(!file.getCanonicalPath().startsWith(root))throw new Exception("Invalid export filename");
+            if(file.exists()&&!file.delete())throw new Exception("Could not replace the previous share copy");
+            pendingExportFileName=filename;
+            writeExport(sharedUri(file));
+            if(!file.isFile()||file.length()==0)return;
+            sendSharedFile(file,ExportMimeType.forName(filename),"Share export — Quick Share or another app");
+        }catch(Exception e){showError("Could not share export",e);}
+    }
+"""
+share_anchor="    private void shareInstalledApk(){"
+if main.read_text().count(share_anchor)!=1: raise SystemExit("Quick Share helper anchor missing")
+main.write_text(main.read_text().replace(share_anchor,share_method+"\n"+share_anchor,1))
+provider = """package com.iceinventory.onhand;
+
+import android.content.ContentProvider;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.MatrixCursor;
+import android.net.Uri;
+import android.os.ParcelFileDescriptor;
+import android.provider.OpenableColumns;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+/** Private provider for internally prepared OnHand sharing and export files. */
+public final class ShareFileProvider extends ContentProvider {
+    @Override public boolean onCreate(){return true;}
+    private File resolve(Uri uri,boolean create)throws FileNotFoundException{
+        if(uri==null||uri.getPathSegments().size()!=2||!"onhand".equals(uri.getPathSegments().get(0)))throw new FileNotFoundException("Invalid share URI");
+        File dir=new File(getContext().getCacheDir(),"shared");
+        File file=new File(dir,uri.getLastPathSegment());
+        try{
+            if(create&&!dir.exists()&&!dir.mkdirs())throw new FileNotFoundException("Could not prepare sharing folder");
+            String root=dir.getCanonicalPath()+File.separator;
+            String target=file.getCanonicalPath();
+            if(!target.startsWith(root)||(!create&&!file.isFile()))throw new FileNotFoundException("Shared file not found");
+            return file;
+        }catch(IOException e){throw new FileNotFoundException(e.getMessage());}
+    }
+    @Override public String getType(Uri uri){return uri==null?"application/octet-stream":ExportMimeType.forName(uri.getLastPathSegment());}
+    @Override public ParcelFileDescriptor openFile(Uri uri,String mode)throws FileNotFoundException{
+        if("r".equals(mode))return ParcelFileDescriptor.open(resolve(uri,false),ParcelFileDescriptor.MODE_READ_ONLY);
+        if("w".equals(mode)||"wt".equals(mode))return ParcelFileDescriptor.open(resolve(uri,true),ParcelFileDescriptor.MODE_CREATE|ParcelFileDescriptor.MODE_TRUNCATE|ParcelFileDescriptor.MODE_WRITE_ONLY);
+        throw new FileNotFoundException("Unsupported sharing mode");
+    }
+    @Override public Cursor query(Uri uri,String[] projection,String selection,String[] selectionArgs,String sortOrder){
+        try{
+            File f=resolve(uri,false);String[] cols=projection==null?new String[]{OpenableColumns.DISPLAY_NAME,OpenableColumns.SIZE}:projection;
+            MatrixCursor cursor=new MatrixCursor(cols,1);MatrixCursor.RowBuilder row=cursor.newRow();
+            for(String col:cols){if(OpenableColumns.DISPLAY_NAME.equals(col))row.add(f.getName());else if(OpenableColumns.SIZE.equals(col))row.add(f.length());else row.add(null);}
+            return cursor;
+        }catch(Exception e){return null;}
+    }
+    @Override public Uri insert(Uri uri,ContentValues values){throw new UnsupportedOperationException("Private file provider");}
+    @Override public int delete(Uri uri,String selection,String[] selectionArgs){throw new UnsupportedOperationException("Private file provider");}
+    @Override public int update(Uri uri,ContentValues values,String selection,String[] selectionArgs){throw new UnsupportedOperationException("Private file provider");}
+}
+"""
+(app / "src/main/java/com/iceinventory/onhand/ShareFileProvider.java").write_text(provider)
+mime = """package com.iceinventory.onhand;
+
+import java.util.Locale;
+
+/** MIME types used by Android's system share sheet for exported files. */
+public final class ExportMimeType {
+    private ExportMimeType() {}
+    public static String forName(String filename) {
+        String name=filename==null?"":filename.toLowerCase(Locale.US);
+        if(name.endsWith(".apk"))return "application/vnd.android.package-archive";
+        if(name.endsWith(".zip"))return "application/zip";
+        if(name.endsWith(".xlsx"))return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        if(name.endsWith(".html")||name.endsWith(".htm"))return "text/html";
+        if(name.endsWith(".txt")||name.endsWith(".csv"))return "text/plain";
+        return "application/octet-stream";
+    }
+}
+"""
+(app / "src/main/java/com/iceinventory/onhand/ExportMimeType.java").write_text(mime)
+test_text = tests.read_text()
+test_anchor = '    @Test public void caseMultiplierKeepsWorkingCalculation(){'
+if test_text.count(test_anchor)!=1: raise SystemExit("Quick Share test insertion point missing")
+test_text=test_text.replace(test_anchor,'''    @Test public void shareUsesCorrectMimeTypesForExportFormats(){
+        assertEquals("text/plain",ExportMimeType.forName("batch.txt"));
+        assertEquals("text/html",ExportMimeType.forName("items.html"));
+        assertEquals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",ExportMimeType.forName("inventory.xlsx"));
+    }
+'''+test_anchor,1)
+tests.write_text(test_text)
+
 # Add exact version and mandatory CI tests.
 manifest=app / "src/main/AndroidManifest.xml"
-if "iCE Onhand 3.0.250" not in manifest.read_text():raise SystemExit("Manifest version was not updated")
+if "iCE Onhand 3.0.251" not in manifest.read_text():raise SystemExit("Manifest version was not updated")
 main_source=main.read_text();batch_source=batch.read_text()
 checks={
-    "version": "versionCode 30250" in build.read_text() and "versionName '3.0.250'" in build.read_text(),
+    "version": "versionCode 30251" in build.read_text() and "versionName '3.0.251'" in build.read_text(),
     "scan resolves mapped location": "String mappedLocation=locationDescriptionForBarcode(rawCode);" in main_source,
     "location banner includes mapped barcode": "code+\" — \"+description" in main_source,
     "cigarette summary uses location-aware rule": "CigaretteCountRules.isCigarette(category,rowLocation)" in main_source,
@@ -235,5 +353,5 @@ checks={
     "location regression test": "fiveDigitLocationSuffixIsPreservedAndMapped" in tests.read_text(),
 }
 failed=[name for name,ok in checks.items() if not ok]
-if failed:raise SystemExit("3.0.250 regression preparation failed: "+", ".join(failed))
-print("Prepared OnHand 3.0.250 regression fixes and tests")
+if failed:raise SystemExit("3.0.251 regression preparation failed: "+", ".join(failed))
+print("Prepared OnHand 3.0.251 regression fixes and tests")
