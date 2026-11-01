@@ -3,9 +3,9 @@ name: Build OnHand APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master, feature/30238-victoria-coffee-locations, feature/30243-victoria-count-batches, feature/30244-negative-quantity-verification, feature/30245-incremental-counter-batches, feature/30246-petrosoft-counter-export, feature/30247-master-candidate-activation, feature/30248-master-package-import-fix ]
+    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master, feature/30238-victoria-coffee-locations, feature/30243-victoria-count-batches, feature/30244-negative-quantity-verification, feature/30245-incremental-counter-batches, feature/30246-petrosoft-counter-export, feature/30247-master-candidate-activation, feature/30248-master-package-import-fix, feature/30249-regression-fixes ]
   pull_request:
-    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master, feature/30238-victoria-coffee-locations, feature/30243-victoria-count-batches, feature/30244-negative-quantity-verification, feature/30245-incremental-counter-batches, feature/30246-petrosoft-counter-export, feature/30247-master-candidate-activation, feature/30248-master-package-import-fix ]
+    branches: [ main, fix/30236-bluetooth-location-choice, feature/30237-warehouse-location-master, feature/30238-victoria-coffee-locations, feature/30243-victoria-count-batches, feature/30244-negative-quantity-verification, feature/30245-incremental-counter-batches, feature/30246-petrosoft-counter-export, feature/30247-master-candidate-activation, feature/30248-master-package-import-fix, feature/30249-regression-fixes ]
 
 jobs:
   build:
@@ -23,8 +23,11 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare verified 3.0.248 Master package recovery
-        run: python3 .github/prepare_30248.py
+      - name: Prepare and verify 3.0.249 inventory regression fixes
+        run: python3 .github/prepare_30249.py
+
+      - name: Run inventory regression tests
+        run: gradle :app:testDebugUnitTest
 
       - name: Restore permanent signing keystore
         env:
@@ -65,13 +68,13 @@ jobs:
         run: gradle :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.248.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.249.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.248.apk
+        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.249.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.248-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.248.apk
+          name: iCE-Onhand-Inventory-3.0.249-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.249.apk
           if-no-files-found: error
