@@ -51,7 +51,7 @@ jobs:
           if 'ONHAND_KEYSTORE_BASE64=' in s:
               s = s.split('ONHAND_KEYSTORE_BASE64=', 1)[1]
           s = s.strip().strip('"').strip("'").strip('`')
-          s = re.sub(r'\s+', '', s).rstrip('=')
+          s = re.sub(r'\s+', '', s).replace('=', '')
           # Remove one stray final data character if the stored value has
           # a one-character Base64 overrun; keytool and APK certificate checks
           # below reject any value that does not restore the established key.
