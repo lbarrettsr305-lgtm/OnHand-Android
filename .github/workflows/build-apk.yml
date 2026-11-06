@@ -51,9 +51,14 @@ jobs:
           if 'ONHAND_KEYSTORE_BASE64=' in s:
               s = s.split('ONHAND_KEYSTORE_BASE64=', 1)[1]
           s = s.strip().strip('"').strip("'").strip('`')
-          s = re.sub(r'\s+', '', s)
+          s = re.sub(r'\s+', '', s).rstrip('=')
+          # Remove one stray final data character if the stored value has
+          # a one-character Base64 overrun; keytool and APK certificate checks
+          # below reject any value that does not restore the established key.
+          if len(s) % 4 == 1:
+              s = s[:-1]
           s += '=' * ((4 - len(s) % 4) % 4)
-          data = base64.b64decode(s, validate=False)
+          data = base64.b64decode(s, validate=True)
           if len(data) < 100:
               raise SystemExit('Decoded keystore is unexpectedly small')
           path = os.path.join(os.environ['RUNNER_TEMP'], 'onhand-release.jks')
@@ -81,7 +86,9 @@ jobs:
         run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.253.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.253.apk
+        run: |
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.253.apk | tee "$RUNNER_TEMP/apk-signature.txt"
+          grep -F 'Signer #1 certificate SHA-256 digest: 997c1f823cd4a7d7444722a50af2ca91b77fb33fe883c344b969df975b301fd7' "$RUNNER_TEMP/apk-signature.txt"
 
       - uses: actions/upload-artifact@v4
         with:
