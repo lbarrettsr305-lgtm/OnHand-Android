@@ -28,7 +28,10 @@ jobs:
           python3 - <<'PY'
           import base64, io, tarfile
           from pathlib import Path
-          archive = base64.b64decode(Path('.github/onhand-30253-source.tgz.b64').read_bytes())
+          parts = sorted(Path('.github').glob('onhand-30253-source-*.part'))
+          if not parts:
+              raise SystemExit('Source archive chunks are missing')
+          archive = base64.b64decode(''.join(p.read_text().strip() for p in parts))
           with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as source:
               for member in source.getmembers():
                   if member.name.startswith('/') or '..' in Path(member.name).parts:
