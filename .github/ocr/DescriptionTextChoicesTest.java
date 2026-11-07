@@ -78,6 +78,28 @@ public class DescriptionTextChoicesTest {
         assertFalse(choices.toString().contains("Color 1"));
     }
 
+    @Test public void decimalSizesAndMultipacksAreNotCollapsed(){
+        List<String> values=Arrays.asList("2.3 OZ","23 OZ","6/2LB","62LB");
+        assertEquals(4,DescriptionTextChoices.allText(values).size());
+        List<String> choices=DescriptionTextChoices.shortlist(Arrays.asList(
+            line("2.3 OZ",12),line("23 OZ",12),line("6/2LB",12),line("62LB",12)));
+        assertEquals(4,choices.size());
+        assertTrue(choices.contains("2.3 OZ"));
+        assertTrue(choices.contains("23 OZ"));
+        assertTrue(choices.contains("6/2LB"));
+        assertTrue(choices.contains("62LB"));
+    }
+
+    @Test public void ingredientPromotionAndServingMeasurementsAreFiltered(){
+        List<String> choices=DescriptionTextChoices.shortlist(Arrays.asList(
+            line("POWERED BY",20),line("ARGAN OIL & ALOETRIX",22),line("ALFAPARF",24),
+            line("SERVING SIZE 30g",10),line("NET WT 100g",10)));
+        assertFalse(choices.contains("ARGAN OIL & ALOETRIX"));
+        assertFalse(choices.contains("30G"));
+        assertTrue(choices.contains("100G"));
+        assertTrue(choices.contains("ALFAPARF"));
+    }
+
     @Test public void foldedDuplicateCanPreferCompleteWordsButDistinctNamesRemain(){
         List<String> choices=DescriptionTextChoices.shortlist(Arrays.asList(
             line("GreenWG",30),line("Green WIG",30),line("BrandA",24),line("BrandB",24)));

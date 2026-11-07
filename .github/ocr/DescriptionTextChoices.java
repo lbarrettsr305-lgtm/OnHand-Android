@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 public final class DescriptionTextChoices {
     public static final int MAX_CHOICES=8;
     private static final Pattern SIZE=Pattern.compile("(?i)(?:\\b\\d+\\s*[/x×]\\s*)?\\d+(?:[.,]\\d+)?\\s*(?:fl\\.?\\s*)?(?:fluid\\s+ounces?|oz|lbs?|pounds?|kg|g|ml|milliliters?|liters?|litres?|l|ct|count|packs?|pk|gal|qt|quarts?|inches|inch|in\\.?|feet|foot|ft\\.?)\\b|\\b\\d+(?:\\.\\d+)?\\s*[\"″”]|\\b\\d+\\s*[x×]\\s*\\d+(?:\\.\\d+)?\\b");
-    private static final Pattern NOISE=Pattern.compile("(?i)\\b(?:ingredients?|maintenance|directions?|instructions?|warnings?|caution|nutrition|calories|manufactured|distributed|imported|registro|copyright|recycle|patented|technology)\\b|washing\\s*&?\\s*care|made\\s+in|powered\\s+by|designed\\s+for|vibrant\\s+color\\s*&?\\s*bonding|no\\s+animal|no\\s+ppd|hyaluronic\\s+acid|\\bvegan\\b|long[- ]lasting|\\b(?:rinse|immerse|swish|gently|brush|shampoo\\s+for|do\\s+not|keep\\s+out)\\b|https?[:/]|www\\.|@");
+    private static final Pattern NOISE=Pattern.compile("(?i)\\b(?:ingredients?|maintenance|directions?|instructions?|warnings?|caution|nutrition|serving|calories|manufactured|distributed|imported|registro|copyright|recycle|patented|technology)\\b|washing\\s*&?\\s*care|made\\s+in|powered\\s+by|designed\\s+for|vibrant\\s+color\\s*&?\\s*bonding|no\\s+animal|no\\s+ppd|hyaluronic\\s+acid|\\bvegan\\b|long[- ]lasting|\\b(?:rinse|immerse|swish|gently|brush|shampoo\\s+for|do\\s+not|keep\\s+out)\\b|https?[:/]|www\\.|@");
     private static final Pattern DETAIL=Pattern.compile("(?i)\\b(?:style|color|colour|shade|size|model|item|yaki|bob|lace|remi|wig|human\\s+hair)\\b|^#\\s*[A-Z0-9-]+$");
     private DescriptionTextChoices(){}
 
@@ -50,7 +50,7 @@ public final class DescriptionTextChoices {
             String value=clean(line.text);
             int position=order++*10;
             if(value.isEmpty()||line.retailerBlock){previous=value;continue;}
-            boolean rejected=noise(value);
+            boolean rejected=noise(value)||previous.matches("(?i)powered by|designed for");
             Matcher sizes=SIZE.matcher(value);
             int sizeOrder=5;
             int foundSizes=0;
@@ -130,7 +130,18 @@ public final class DescriptionTextChoices {
         return out;
     }
 
-    public static String key(String text){return clean(text).toUpperCase(Locale.US).replaceAll("[^\\p{L}\\p{N}]","");}
+    public static String key(String text){
+        String value=clean(text).toUpperCase(Locale.US);
+        StringBuilder out=new StringBuilder();
+        for(int i=0;i<value.length();i++){
+            char c=value.charAt(i);
+            if(Character.isLetterOrDigit(c))out.append(c);
+            else if((c=='.'||c==','||c=='/')&&i>0&&i+1<value.length()
+                    &&Character.isDigit(value.charAt(i-1))&&Character.isDigit(value.charAt(i+1)))
+                out.append(c==','?'.':c);
+        }
+        return out.toString();
+    }
     private static String words(String text){return clean(text).toUpperCase(Locale.US).replaceAll("[^\\p{L}\\p{N}]+"," ").trim();}
     private static int wordCount(String text){String value=words(text);return value.isEmpty()?0:value.split(" ").length;}
     private static boolean noise(String text){return NOISE.matcher(clean(text)).find()||isRetailerBlock(text);}
@@ -144,7 +155,7 @@ public final class DescriptionTextChoices {
         String x=key(a),y=key(b);
         if(x.equals(y))return true;
         if(wordCount(a)==wordCount(b))return false;
-        if(!a.replaceAll("\\D","").equals(b.replaceAll("\\D","")))return false;
+        if(a.matches(".*[0-9].*")||b.matches(".*[0-9].*"))return false;
         if(Math.min(x.length(),y.length())<6||Math.abs(x.length()-y.length())>1)return false;
         int i=0,j=0,edits=0;
         while(i<x.length()&&j<y.length()){
