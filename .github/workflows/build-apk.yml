@@ -53,6 +53,9 @@ jobs:
       - name: Restore automatic new-store internet lookup
         run: python3 .github/fix_30262.py
 
+      - name: Prioritize relevant OCR description choices
+        run: python3 .github/fix_30263.py
+
       - name: Restore permanent signing keystore
         env:
           ONHAND_KEYSTORE_BASE64: ${{ secrets.ONHAND_KEYSTORE_BASE64 }}
@@ -97,15 +100,15 @@ jobs:
         run: gradle :app:testReleaseUnitTest :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.262.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.263.apk
 
       - name: Verify APK signature
         run: |
-          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.262.apk | tee "$RUNNER_TEMP/apk-signature.txt"
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.263.apk | tee "$RUNNER_TEMP/apk-signature.txt"
           grep -F 'Signer #1 certificate SHA-256 digest: 997c1f823cd4a7d7444722a50af2ca91b77fb33fe883c344b969df975b301fd7' "$RUNNER_TEMP/apk-signature.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.262-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.262.apk
+          name: iCE-Onhand-Inventory-3.0.263-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.263.apk
           if-no-files-found: error
