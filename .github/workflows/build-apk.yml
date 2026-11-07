@@ -23,12 +23,12 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Install the prepared 3.0.254 app source
+      - name: Install the prepared 3.0.255 app source
         run: |
           python3 - <<'PY'
           import base64, io, tarfile
           from pathlib import Path
-          parts = sorted(Path('.github').glob('onhand-30254-source-*.part'))
+          parts = sorted(Path('.github').glob('onhand-30255-source-*.part'))
           if not parts:
               raise SystemExit('Source archive chunks are missing')
           archive = base64.b64decode(''.join(p.read_text().strip() for p in parts))
@@ -83,15 +83,15 @@ jobs:
         run: gradle :app:testReleaseUnitTest :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.254.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.255.apk
 
       - name: Verify APK signature
         run: |
-          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.254.apk | tee "$RUNNER_TEMP/apk-signature.txt"
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.255.apk | tee "$RUNNER_TEMP/apk-signature.txt"
           grep -F 'Signer #1 certificate SHA-256 digest: 997c1f823cd4a7d7444722a50af2ca91b77fb33fe883c344b969df975b301fd7' "$RUNNER_TEMP/apk-signature.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.254-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.254.apk
+          name: iCE-Onhand-Inventory-3.0.255-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.255.apk
           if-no-files-found: error
