@@ -23,8 +23,38 @@ jobs:
       - name: Enable AndroidX
         run: echo "android.useAndroidX=true" > gradle.properties
 
-      - name: Prepare and verify 3.0.191 scan feedback and remembered location
-        run: python3 .github/prepare_30191.py
+      - name: Install the prepared 3.0.258 app source
+        run: |
+          python3 - <<'PY'
+          import base64, io, tarfile
+          from pathlib import Path
+          parts = sorted(Path('.github').glob('onhand-30258-source-*.part'))
+          if not parts:
+              raise SystemExit('Source archive chunks are missing')
+          archive = base64.b64decode(''.join(p.read_text().strip() for p in parts))
+          with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as source:
+              for member in source.getmembers():
+                  if member.name.startswith('/') or '..' in Path(member.name).parts:
+                      raise SystemExit(f'Unsafe source archive path: {member.name}')
+              source.extractall('.', filter='data')
+          PY
+
+      - name: Fix price-book format selection for 3.0.259
+        run: python3 .github/fix_30259.py
+
+      - name: Apply description-first setup and text-selection fixes
+        run: python3 .github/fix_30260.py
+
+      - name: Add and verify protected barcode correction
+        run: |
+          python3 .github/fix_30261.py
+          python3 .github/test_barcode_correction.py
+
+      - name: Restore automatic new-store internet lookup
+        run: python3 .github/fix_30262.py
+
+      - name: Prioritize relevant OCR description choices
+        run: python3 .github/fix_30263.py
 
       - name: Restore permanent signing keystore
         env:
@@ -38,9 +68,14 @@ jobs:
           if 'ONHAND_KEYSTORE_BASE64=' in s:
               s = s.split('ONHAND_KEYSTORE_BASE64=', 1)[1]
           s = s.strip().strip('"').strip("'").strip('`')
-          s = re.sub(r'\s+', '', s)
+          s = re.sub(r'[^A-Za-z0-9+/]', '', s)
+          # Remove one stray final data character if the stored value has
+          # a one-character Base64 overrun; keytool and APK certificate checks
+          # below reject any value that does not restore the established key.
+          if len(s) % 4 == 1:
+              s = s[:-1]
           s += '=' * ((4 - len(s) % 4) % 4)
-          data = base64.b64decode(s, validate=False)
+          data = base64.b64decode(s, validate=True)
           if len(data) < 100:
               raise SystemExit('Decoded keystore is unexpectedly small')
           path = os.path.join(os.environ['RUNNER_TEMP'], 'onhand-release.jks')
@@ -62,16 +97,18 @@ jobs:
           ONHAND_STORE_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
           ONHAND_KEY_ALIAS: ${{ secrets.ONHAND_KEY_ALIAS }}
           ONHAND_KEY_PASSWORD: ${{ secrets.ONHAND_STORE_PASSWORD }}
-        run: gradle :app:assembleRelease --stacktrace
+        run: gradle :app:testReleaseUnitTest :app:assembleRelease --stacktrace
 
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.191.apk
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.263.apk
 
       - name: Verify APK signature
-        run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.191.apk
+        run: |
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.263.apk | tee "$RUNNER_TEMP/apk-signature.txt"
+          grep -F 'Signer #1 certificate SHA-256 digest: 997c1f823cd4a7d7444722a50af2ca91b77fb33fe883c344b969df975b301fd7' "$RUNNER_TEMP/apk-signature.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iCE-Onhand-Inventory-3.0.191-signed
-          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.191.apk
+          name: iCE-Onhand-Inventory-3.0.263-signed
+          path: app/build/outputs/apk/release/iCE-Onhand-Inventory-3.0.263.apk
           if-no-files-found: error
